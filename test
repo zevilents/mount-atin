@@ -1,4 +1,4 @@
--- FINAL TELEPORT GUI SCRIPT + SERVER HOP
+-- FINAL TELEPORT GUI SCRIPT + SERVER HOP + OPEN/MINIMIZE
 -- Bisa diletakkan di StarterPlayerScripts / StarterGui / Workspace (akan auto-parent ke PlayerGui)
 
 local Players = game:GetService("Players")
@@ -6,8 +6,6 @@ local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
 
 local player = Players.LocalPlayer
-
--- Tunggu PlayerGui siap
 local playerGui = player:WaitForChild("PlayerGui")
 
 -- Hapus GUI lama kalau ada
@@ -25,13 +23,12 @@ screenGui.Parent = playerGui
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 250, 0, 300)
 frame.Position = UDim2.new(0, 20, 0, 100)
-frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-frame.BackgroundTransparency = 0.3
+frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+frame.BackgroundTransparency = 0.2
 frame.BorderSizePixel = 0
 frame.Visible = true
 frame.Parent = screenGui
 
--- Sudut melengkung
 local corner = Instance.new("UICorner")
 corner.CornerRadius = UDim.new(0, 12)
 corner.Parent = frame
@@ -45,29 +42,46 @@ scroll.BorderSizePixel = 0
 scroll.ScrollBarThickness = 6
 scroll.Parent = frame
 
--- Tombol Hide/Show
-local toggleButton = Instance.new("TextButton")
-toggleButton.Size = UDim2.new(0, 60, 0, 25)
-toggleButton.Position = UDim2.new(1, -65, 0, 5)
-toggleButton.Text = "Hide"
-toggleButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-toggleButton.TextColor3 = Color3.new(1, 1, 1)
-toggleButton.Font = Enum.Font.SourceSansBold
-toggleButton.TextSize = 16
-toggleButton.Parent = frame
+-- Tombol minimize (pojok kanan atas frame)
+local minimizeButton = Instance.new("TextButton")
+minimizeButton.Size = UDim2.new(0, 25, 0, 25)
+minimizeButton.Position = UDim2.new(1, -30, 0, 5)
+minimizeButton.Text = "–"
+minimizeButton.BackgroundColor3 = Color3.fromRGB(200, 100, 50)
+minimizeButton.TextColor3 = Color3.new(1, 1, 1)
+minimizeButton.Font = Enum.Font.SourceSansBold
+minimizeButton.TextSize = 18
+minimizeButton.Parent = frame
 
-local btnCorner = Instance.new("UICorner")
-btnCorner.CornerRadius = UDim.new(0, 6)
-btnCorner.Parent = toggleButton
+local minCorner = Instance.new("UICorner")
+minCorner.CornerRadius = UDim.new(0, 6)
+minCorner.Parent = minimizeButton
 
-toggleButton.MouseButton1Click:Connect(function()
-	if scroll.Visible then
-		scroll.Visible = false
-		toggleButton.Text = "Show"
-	else
-		scroll.Visible = true
-		toggleButton.Text = "Hide"
-	end
+-- Tombol untuk reopen (floating button)
+local openButton = Instance.new("TextButton")
+openButton.Size = UDim2.new(0, 80, 0, 35)
+openButton.Position = UDim2.new(0, 20, 0, 60)
+openButton.Text = "Teleport"
+openButton.BackgroundColor3 = Color3.fromRGB(50, 150, 255)
+openButton.TextColor3 = Color3.new(1, 1, 1)
+openButton.Font = Enum.Font.SourceSansBold
+openButton.TextSize = 18
+openButton.Visible = false
+openButton.Parent = screenGui
+
+local openCorner = Instance.new("UICorner")
+openCorner.CornerRadius = UDim.new(0, 8)
+openCorner.Parent = openButton
+
+-- Minimize / Open toggle
+minimizeButton.MouseButton1Click:Connect(function()
+	frame.Visible = false
+	openButton.Visible = true
+end)
+
+openButton.MouseButton1Click:Connect(function()
+	frame.Visible = true
+	openButton.Visible = false
 end)
 
 -- Fungsi teleport
@@ -83,7 +97,7 @@ local function createButton(text, yPos, callback)
 	button.Size = UDim2.new(0, 200, 0, 35)
 	button.Position = UDim2.new(0, 10, 0, yPos)
 	button.Text = text
-	button.BackgroundColor3 = Color3.fromRGB(50, 150, 255)
+	button.BackgroundColor3 = Color3.fromRGB(70, 130, 255)
 	button.TextColor3 = Color3.new(1, 1, 1)
 	button.Font = Enum.Font.SourceSansBold
 	button.TextSize = 18
@@ -98,38 +112,17 @@ local function createButton(text, yPos, callback)
 	end
 end
 
--- Daftar lokasi
+-- Daftar lokasi teleport
 local locations = {
 	{"POS 1", Vector3.new(5, 12, -404)},
 	{"POS 2", Vector3.new(-184, 128, 408)},
 	{"POS 3", Vector3.new(-166, 229, 652)},
 	{"POS 4", Vector3.new(-38, 406, 616)},
 	{"POS 5", Vector3.new(130, 651, 614)},
-	{"POS 6", Vector3.new(-247, 666, 735)},
-	{"POS 7", Vector3.new(-685, 641, 868)},
-	{"POS 8", Vector3.new(-658, 688, 1458)},
-	{"POS 9", Vector3.new(-507, 903, 1868)},
-	{"POS 10", Vector3.new(59, 950, 2089)},
-	{"POS 11", Vector3.new(52, 981, 2450)},
-	{"POS 12", Vector3.new(72, 1097, 2456)},
-	{"POS 13", Vector3.new(264, 1270, 2038)},
-	{"POS 14", Vector3.new(-419, 1302, 2395)},
-	{"POS 15", Vector3.new(-773, 1314, 2665)},
-	{"POS 16", Vector3.new(-837, 1475, 2626)},
-	{"POS 17", Vector3.new(-469, 1465, 2769)},
-	{"POS 18", Vector3.new(-468, 1537, 2837)},
-	{"POS 19", Vector3.new(-386, 1640, 2795)},
-	{"POS 20", Vector3.new(-208, 1666, 2749)},
-	{"POS 21", Vector3.new(-233, 1742, 2792)},
-	{"POS 22", Vector3.new(-423, 1740, 2799)},
-	{"POS 23", Vector3.new(-424, 1713, 3421)},
-	{"POS 24", Vector3.new(71, 1719, 3428)},
-	{"POS 25", Vector3.new(436, 1720, 3431)},
-	{"POS 26", Vector3.new(625, 1799, 3433)},
 	{"PUNCAK", Vector3.new(781, 2163, 3921)},
 }
 
--- Generate tombol lokasi teleport
+-- Generate tombol lokasi
 local y = 0
 for _, data in ipairs(locations) do
 	local name, pos = data[1], data[2]
@@ -139,20 +132,19 @@ for _, data in ipairs(locations) do
 	y = y + 40
 end
 
--- Tombol SERVER HOP
+-- Tombol Server Hop
 createButton("🔄 Server Hop", y, function()
 	local placeId = game.PlaceId
 	local servers = {}
 	local cursor = ""
-	
-	-- Cari server lain lewat API Roblox
+
 	local function listServers()
 		local url = "https://games.roblox.com/v1/games/" .. placeId .. "/servers/Public?sortOrder=Asc&limit=100&cursor=" .. cursor
 		local response = game:HttpGet(url)
 		local data = HttpService:JSONDecode(response)
 		return data
 	end
-	
+
 	local success, data = pcall(listServers)
 	if success and data and data.data then
 		for _, server in ipairs(data.data) do
@@ -161,7 +153,7 @@ createButton("🔄 Server Hop", y, function()
 			end
 		end
 	end
-	
+
 	if #servers > 0 then
 		local randomServer = servers[math.random(1, #servers)]
 		TeleportService:TeleportToPlaceInstance(placeId, randomServer, player)
@@ -170,5 +162,4 @@ createButton("🔄 Server Hop", y, function()
 	end
 end)
 
--- Atur tinggi scroll otomatis
 scroll.CanvasSize = UDim2.new(0, 0, 0, y + 50)
