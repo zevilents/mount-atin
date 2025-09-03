@@ -1,0 +1,68 @@
+-- LocalScript di StarterGui
+local Players = game:GetService("Players")
+local TeleportService = game:GetService("TeleportService")
+local player = Players.LocalPlayer
+
+-- Buat GUI utama
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "TeleportGUI"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+-- Frame panel
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 250, 0, 220)
+frame.Position = UDim2.new(0, 20, 0, 100)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+frame.BackgroundTransparency = 0.3
+frame.BorderSizePixel = 0
+frame.Parent = screenGui
+
+-- Sudut melengkung
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 12)
+corner.Parent = frame
+
+-- Fungsi bikin tombol dengan posisi manual
+local function createButton(text, yPos, callback)
+	local button = Instance.new("TextButton")
+	button.Size = UDim2.new(0, 200, 0, 50)
+	button.Position = UDim2.new(0, 25, 0, yPos)
+	button.Text = text
+	button.BackgroundColor3 = Color3.fromRGB(50, 150, 255)
+	button.TextColor3 = Color3.fromRGB(255, 255, 255)
+	button.Font = Enum.Font.SourceSansBold
+	button.TextSize = 20
+	button.Parent = frame
+
+	-- Rounded button
+	local btnCorner = Instance.new("UICorner")
+	btnCorner.CornerRadius = UDim.new(0, 8)
+	btnCorner.Parent = button
+
+	button.MouseButton1Click:Connect(callback)
+end
+
+-- Koordinat tujuan
+local pos26 = Vector3.new(626, 1799, 3432)
+local puncak = Vector3.new(795, 2175, 3944)
+
+-- Fungsi teleport
+local function teleportTo(position)
+	local character = player.Character or player.CharacterAdded:Wait()
+	local hrp = character:WaitForChild("HumanoidRootPart")
+	hrp.CFrame = CFrame.new(position)
+end
+
+-- Tambah tombol ke panel
+createButton("Teleport ke POS 26", 20, function()
+	teleportTo(pos26)
+end)
+
+createButton("Teleport ke PUNCAK", 90, function()
+	teleportTo(puncak)
+end)
+
+createButton("Server Hop", 160, function()
+	TeleportService:Teleport(game.PlaceId, player)
+end)
