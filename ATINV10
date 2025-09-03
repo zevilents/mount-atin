@@ -1,5 +1,10 @@
--- FINAL TELEPORT GUI SCRIPT + SERVER HOP + OPEN/MINIMIZE + ANIMASI + KEYBIND
--- Bisa diletakkan di StarterPlayerScripts / StarterGui / Workspace (akan auto-parent ke PlayerGui)
+-- FINAL TELEPORT GUI SCRIPT
+-- + SERVER HOP
+-- + REJOIN SERVER
+-- + OPEN/MINIMIZE
+-- + ANIMASI
+-- + KEYBIND G
+-- + FULL POSITIONS
 
 local Players = game:GetService("Players")
 local TeleportService = game:GetService("TeleportService")
@@ -24,7 +29,7 @@ screenGui.Parent = playerGui
 -- Frame utama
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 250, 0, 300)
-frame.Position = UDim2.new(0, -270, 0, 100) -- mulai agak di luar kiri (untuk animasi masuk)
+frame.Position = UDim2.new(0, -270, 0, 100) -- mulai di luar kiri (untuk animasi)
 frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 frame.BackgroundTransparency = 0.2
 frame.BorderSizePixel = 0
@@ -44,7 +49,7 @@ scroll.BorderSizePixel = 0
 scroll.ScrollBarThickness = 6
 scroll.Parent = frame
 
--- Tombol minimize (pojok kanan atas frame)
+-- Tombol minimize
 local minimizeButton = Instance.new("TextButton")
 minimizeButton.Size = UDim2.new(0, 25, 0, 25)
 minimizeButton.Position = UDim2.new(1, -30, 0, 5)
@@ -139,12 +144,34 @@ local function createButton(text, yPos, callback)
 	end
 end
 
--- Daftar lokasi contoh
+-- Daftar lokasi FULL
 local locations = {
 	{"POS 1", Vector3.new(5, 12, -404)},
 	{"POS 2", Vector3.new(-184, 128, 408)},
 	{"POS 3", Vector3.new(-166, 229, 652)},
 	{"POS 4", Vector3.new(-38, 406, 616)},
+	{"POS 5", Vector3.new(130, 651, 614)},
+	{"POS 6", Vector3.new(-247, 666, 735)},
+	{"POS 7", Vector3.new(-685, 641, 868)},
+	{"POS 8", Vector3.new(-658, 688, 1458)},
+	{"POS 9", Vector3.new(-507, 903, 1868)},
+	{"POS 10", Vector3.new(59, 950, 2089)},
+	{"POS 11", Vector3.new(52, 981, 2450)},
+	{"POS 12", Vector3.new(72, 1097, 2456)},
+	{"POS 13", Vector3.new(264, 1270, 2038)},
+	{"POS 14", Vector3.new(-419, 1302, 2395)},
+	{"POS 15", Vector3.new(-773, 1314, 2665)},
+	{"POS 16", Vector3.new(-837, 1475, 2626)},
+	{"POS 17", Vector3.new(-469, 1465, 2769)},
+	{"POS 18", Vector3.new(-468, 1537, 2837)},
+	{"POS 19", Vector3.new(-386, 1640, 2795)},
+	{"POS 20", Vector3.new(-208, 1666, 2749)},
+	{"POS 21", Vector3.new(-233, 1742, 2792)},
+	{"POS 22", Vector3.new(-423, 1740, 2799)},
+	{"POS 23", Vector3.new(-424, 1713, 3421)},
+	{"POS 24", Vector3.new(71, 1719, 3428)},
+	{"POS 25", Vector3.new(436, 1720, 3431)},
+	{"POS 26", Vector3.new(625, 1799, 3433)},
 	{"PUNCAK", Vector3.new(781, 2163, 3921)},
 }
 
@@ -186,6 +213,13 @@ createButton("🔄 Server Hop", y, function()
 	else
 		warn("Tidak ada server lain ditemukan!")
 	end
+end)
+
+y = y + 40
+
+-- Tombol Rejoin Server
+createButton("🔁 Rejoin Server", y, function()
+	TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, player)
 end)
 
 scroll.CanvasSize = UDim2.new(0, 0, 0, y + 50)
