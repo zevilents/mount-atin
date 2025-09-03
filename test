@@ -1,76 +1,140 @@
---// GUI Rahasia versi CoreGui
+-- FINAL TELEPORT GUI SCRIPT
+-- Bisa diletakkan di StarterPlayerScripts / StarterGui / Workspace (akan auto-parent ke PlayerGui)
+
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 
--- Buat ScreenGui
+-- Tunggu PlayerGui siap
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- Hapus GUI lama kalau ada
+if playerGui:FindFirstChild("TeleportGUI") then
+	playerGui.TeleportGUI:Destroy()
+end
+
+-- Buat GUI utama
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "TeleportSecret"
-screenGui.Parent = game:GetService("CoreGui") -- supaya selalu muncul
+screenGui.Name = "TeleportGUI"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = playerGui
 
 -- Frame utama
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 800, 0, 120)
-frame.Position = UDim2.new(0.5, -400, 0.8, 0) -- tengah bawah
-frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+frame.Size = UDim2.new(0, 250, 0, 300)
+frame.Position = UDim2.new(0, 20, 0, 100)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 frame.BackgroundTransparency = 0.3
+frame.BorderSizePixel = 0
+frame.Visible = true
 frame.Parent = screenGui
 
--- Grid layout 10 tombol per baris
-local grid = Instance.new("UIGridLayout")
-grid.CellSize = UDim2.new(0, 75, 0, 30)
-grid.CellPadding = UDim2.new(0, 5, 0, 5)
-grid.FillDirection = Enum.FillDirection.Horizontal
-grid.FillDirectionMaxCells = 10
-grid.StartCorner = Enum.StartCorner.TopLeft
-grid.Parent = frame
+-- Sudut melengkung
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 12)
+corner.Parent = frame
 
--- Data koordinat
-local teleportLocations = {
-    ["POS 1"] = Vector3.new(5, 12, -404),
-    ["POS 2"] = Vector3.new(-184, 128, 408),
-    ["POS 3"] = Vector3.new(-166, 229, 652),
-    ["POS 4"] = Vector3.new(-38, 406, 616),
-    ["POS 5"] = Vector3.new(130, 651, 614),
-    ["POS 6"] = Vector3.new(-247, 666, 735),
-    ["POS 7"] = Vector3.new(-685, 641, 868),
-    ["POS 8"] = Vector3.new(-658, 688, 1458),
-    ["POS 9"] = Vector3.new(-507, 903, 1868),
-    ["POS 10"] = Vector3.new(59, 950, 2089),
-    ["POS 11"] = Vector3.new(52, 981, 2450),
-    ["POS 12"] = Vector3.new(72, 1097, 2456),
-    ["POS 13"] = Vector3.new(264, 1270, 2038),
-    ["POS 14"] = Vector3.new(-419, 1302, 2395),
-    ["POS 15"] = Vector3.new(-773, 1314, 2665),
-    ["POS 16"] = Vector3.new(-837, 1475, 2626),
-    ["POS 17"] = Vector3.new(-469, 1465, 2769),
-    ["POS 18"] = Vector3.new(-468, 1537, 2837),
-    ["POS 19"] = Vector3.new(-386, 1640, 2795),
-    ["POS 20"] = Vector3.new(-208, 1666, 2749),
-    ["POS 21"] = Vector3.new(-233, 1742, 2792),
-    ["POS 22"] = Vector3.new(-423, 1740, 2799),
-    ["POS 23"] = Vector3.new(-424, 1713, 3421),
-    ["POS 24"] = Vector3.new(71, 1719, 3428),
-    ["POS 25"] = Vector3.new(436, 1720, 3431),
-    ["POS 26"] = Vector3.new(625, 1799, 3433),
-    ["POS 27"] = Vector3.new(781, 2163, 3921)
-}
+-- Scroll area
+local scroll = Instance.new("ScrollingFrame")
+scroll.Size = UDim2.new(1, -10, 1, -40)
+scroll.Position = UDim2.new(0, 5, 0, 35)
+scroll.BackgroundTransparency = 1
+scroll.BorderSizePixel = 0
+scroll.ScrollBarThickness = 6
+scroll.Parent = frame
+
+-- Tombol Hide/Show
+local toggleButton = Instance.new("TextButton")
+toggleButton.Size = UDim2.new(0, 60, 0, 25)
+toggleButton.Position = UDim2.new(1, -65, 0, 5)
+toggleButton.Text = "Hide"
+toggleButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+toggleButton.TextColor3 = Color3.new(1, 1, 1)
+toggleButton.Font = Enum.Font.SourceSansBold
+toggleButton.TextSize = 16
+toggleButton.Parent = frame
+
+local btnCorner = Instance.new("UICorner")
+btnCorner.CornerRadius = UDim.new(0, 6)
+btnCorner.Parent = toggleButton
+
+toggleButton.MouseButton1Click:Connect(function()
+	if scroll.Visible then
+		scroll.Visible = false
+		toggleButton.Text = "Show"
+	else
+		scroll.Visible = true
+		toggleButton.Text = "Hide"
+	end
+end)
 
 -- Fungsi teleport
-local function teleportTo(pos)
-    local char = player.Character or player.CharacterAdded:Wait()
-    local hrp = char:WaitForChild("HumanoidRootPart")
-    hrp.CFrame = CFrame.new(pos)
+local function teleportTo(position)
+	local character = player.Character or player.CharacterAdded:Wait()
+	local hrp = character:WaitForChild("HumanoidRootPart")
+	hrp.CFrame = CFrame.new(position)
 end
 
--- Buat tombol
-for name, pos in pairs(teleportLocations) do
-    local btn = Instance.new("TextButton")
-    btn.Text = name
-    btn.BackgroundColor3 = Color3.fromRGB(50, 150, 255)
-    btn.TextColor3 = Color3.new(1, 1, 1)
-    btn.Parent = frame
+-- Fungsi buat tombol
+local function createButton(text, yPos, callback)
+	local button = Instance.new("TextButton")
+	button.Size = UDim2.new(0, 200, 0, 35)
+	button.Position = UDim2.new(0, 10, 0, yPos)
+	button.Text = text
+	button.BackgroundColor3 = Color3.fromRGB(50, 150, 255)
+	button.TextColor3 = Color3.new(1, 1, 1)
+	button.Font = Enum.Font.SourceSansBold
+	button.TextSize = 18
+	button.Parent = scroll
 
-    btn.MouseButton1Click:Connect(function()
-        teleportTo(pos)
-    end)
+	local btnCorner = Instance.new("UICorner")
+	btnCorner.CornerRadius = UDim.new(0, 8)
+	btnCorner.Parent = button
+
+	if callback then
+		button.MouseButton1Click:Connect(callback)
+	end
 end
+
+-- Daftar lokasi
+local locations = {
+	{"POS 1", Vector3.new(5, 12, -404)},
+	{"POS 2", Vector3.new(-184, 128, 408)},
+	{"POS 3", Vector3.new(-166, 229, 652)},
+	{"POS 4", Vector3.new(-38, 406, 616)},
+	{"POS 5", Vector3.new(130, 651, 614)},
+	{"POS 6", Vector3.new(-247, 666, 735)},
+	{"POS 7", Vector3.new(-685, 641, 868)},
+	{"POS 8", Vector3.new(-658, 688, 1458)},
+	{"POS 9", Vector3.new(-507, 903, 1868)},
+	{"POS 10", Vector3.new(59, 950, 2089)},
+	{"POS 11", Vector3.new(52, 981, 2450)},
+	{"POS 12", Vector3.new(72, 1097, 2456)},
+	{"POS 13", Vector3.new(264, 1270, 2038)},
+	{"POS 14", Vector3.new(-419, 1302, 2395)},
+	{"POS 15", Vector3.new(-773, 1314, 2665)},
+	{"POS 16", Vector3.new(-837, 1475, 2626)},
+	{"POS 17", Vector3.new(-469, 1465, 2769)},
+	{"POS 18", Vector3.new(-468, 1537, 2837)},
+	{"POS 19", Vector3.new(-386, 1640, 2795)},
+	{"POS 20", Vector3.new(-208, 1666, 2749)},
+	{"POS 21", Vector3.new(-233, 1742, 2792)},
+	{"POS 22", Vector3.new(-423, 1740, 2799)},
+	{"POS 23", Vector3.new(-424, 1713, 3421)},
+	{"POS 24", Vector3.new(71, 1719, 3428)},
+	{"POS 25", Vector3.new(436, 1720, 3431)},
+	{"POS 26", Vector3.new(625, 1799, 3433)},
+	{"PUNCAK", Vector3.new(781, 2163, 3921)},
+}
+
+-- Generate tombol
+local y = 0
+for _, data in ipairs(locations) do
+	local name, pos = data[1], data[2]
+	createButton(name, y, function()
+		teleportTo(pos)
+	end)
+	y = y + 40
+end
+
+-- Atur tinggi scroll otomatis
+scroll.CanvasSize = UDim2.new(0, 0, 0, y)
