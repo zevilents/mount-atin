@@ -1,7 +1,10 @@
--- FINAL TELEPORT GUI SCRIPT
+-- FINAL TELEPORT GUI SCRIPT + SERVER HOP
 -- Bisa diletakkan di StarterPlayerScripts / StarterGui / Workspace (akan auto-parent ke PlayerGui)
 
 local Players = game:GetService("Players")
+local TeleportService = game:GetService("TeleportService")
+local HttpService = game:GetService("HttpService")
+
 local player = Players.LocalPlayer
 
 -- Tunggu PlayerGui siap
@@ -126,7 +129,7 @@ local locations = {
 	{"PUNCAK", Vector3.new(781, 2163, 3921)},
 }
 
--- Generate tombol
+-- Generate tombol lokasi teleport
 local y = 0
 for _, data in ipairs(locations) do
 	local name, pos = data[1], data[2]
@@ -136,5 +139,36 @@ for _, data in ipairs(locations) do
 	y = y + 40
 end
 
+-- Tombol SERVER HOP
+createButton("🔄 Server Hop", y, function()
+	local placeId = game.PlaceId
+	local servers = {}
+	local cursor = ""
+	
+	-- Cari server lain lewat API Roblox
+	local function listServers()
+		local url = "https://games.roblox.com/v1/games/" .. placeId .. "/servers/Public?sortOrder=Asc&limit=100&cursor=" .. cursor
+		local response = game:HttpGet(url)
+		local data = HttpService:JSONDecode(response)
+		return data
+	end
+	
+	local success, data = pcall(listServers)
+	if success and data and data.data then
+		for _, server in ipairs(data.data) do
+			if server.playing < server.maxPlayers and server.id ~= game.JobId then
+				table.insert(servers, server.id)
+			end
+		end
+	end
+	
+	if #servers > 0 then
+		local randomServer = servers[math.random(1, #servers)]
+		TeleportService:TeleportToPlaceInstance(placeId, randomServer, player)
+	else
+		warn("Tidak ada server lain ditemukan!")
+	end
+end)
+
 -- Atur tinggi scroll otomatis
-scroll.CanvasSize = UDim2.new(0, 0, 0, y)
+scroll.CanvasSize = UDim2.new(0, 0, 0, y + 50)
