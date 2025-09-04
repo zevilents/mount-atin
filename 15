@@ -1,4 +1,4 @@
--- Final Rayfield Hub — FIXED / COMPLETE
+-- Final Rayfield Hub (improved fling)
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 -- Services
@@ -13,7 +13,7 @@ local LocalPlayer = Players.LocalPlayer
 local Window = Rayfield:CreateWindow({
    Name = "Rayfield Hub",
    LoadingTitle = "Rayfield Suite",
-   LoadingSubtitle = "Final Build",
+   LoadingSubtitle = "Improved Fling Build",
    Theme = "Default",
    ToggleUIKeybind = "K",
    ConfigurationSaving = { Enabled = true, FolderName = nil, FileName = "Big Hub" }
@@ -25,9 +25,7 @@ local TeleportTab = Window:CreateTab("Teleport", 4483362458)
 local ServerTab   = Window:CreateTab("Server", 4483362458)
 local TrollTab    = Window:CreateTab("Troll", 4483362458)
 
--------------------------------------------------
 -- Helpers
--------------------------------------------------
 local function safeHumanoid()
    local c = LocalPlayer.Character
    if not c then return nil end
@@ -47,14 +45,13 @@ local function getPlayerNameList()
    return list
 end
 
--------------------------------------------------
--- Player Tab (1,2,4,5,6,7,3 order)
--------------------------------------------------
--- Saved settings
+----------------------------------------------------------------
+-- PLAYER TAB (WalkSpeed, JumpPower, InfiniteJump, Fly, FlySpeed, Noclip, Reset)
+----------------------------------------------------------------
+
 local SavedWalk = 16
 local SavedJump = 50
 
--- WalkSpeed
 local WalkSlider = PlayerTab:CreateSlider({
    Name = "WalkSpeed",
    Range = {16, 500},
@@ -63,12 +60,11 @@ local WalkSlider = PlayerTab:CreateSlider({
    CurrentValue = SavedWalk,
    Callback = function(v)
       SavedWalk = v
-      local hum = safeHumanoid()
-      if hum then pcall(function() hum.WalkSpeed = v end) end
+      local h = safeHumanoid()
+      if h then pcall(function() h.WalkSpeed = v end) end
    end,
 })
 
--- JumpPower (with UseJumpPower true + JumpHeight fallback)
 local JumpSlider = PlayerTab:CreateSlider({
    Name = "JumpPower",
    Range = {50, 500},
@@ -77,36 +73,42 @@ local JumpSlider = PlayerTab:CreateSlider({
    CurrentValue = SavedJump,
    Callback = function(v)
       SavedJump = v
-      local hum = safeHumanoid()
-      if hum then
-         pcall(function()
-            hum.UseJumpPower = true
-            hum.JumpPower = v
-            hum.JumpHeight = v / 7
-         end)
-      end
+      local h = safeHumanoid()
+      if h then pcall(function() h.UseJumpPower = true; h.JumpPower = v; h.JumpHeight = v/7 end) end
    end,
 })
 
--- Fly Mode + Fly Speed
+local InfiniteJumpEnabled = false
+PlayerTab:CreateToggle({
+   Name = "Infinite Jump",
+   CurrentValue = false,
+   Callback = function(v) InfiniteJumpEnabled = v end
+})
+UserInputService.JumpRequest:Connect(function()
+   if InfiniteJumpEnabled then
+      local h = safeHumanoid()
+      if h then pcall(function() h:ChangeState(Enum.HumanoidStateType.Jumping) end) end
+   end
+end)
+
+-- Fly
 local FlyEnabled = false
 local FlySpeed = 50
 local FlyConn, FlyBV = nil, nil
 
 local function startFly()
-   if FlyConn then FlyConn:Disconnect(); FlyConn = nil end
+   if FlyConn then FlyConn:Disconnect() FlyConn = nil end
    local hrp = safeHRP()
    if not hrp then return end
    if not FlyBV or not FlyBV.Parent then
       FlyBV = Instance.new("BodyVelocity")
-      FlyBV.Name = "Rayfield_FlyBV"
+      FlyBV.Name = "RayfieldFlyBV"
       FlyBV.MaxForce = Vector3.new(1e5,1e5,1e5)
       FlyBV.Velocity = Vector3.zero
       FlyBV.Parent = hrp
    else
       FlyBV.Parent = hrp
    end
-
    FlyConn = RunService.RenderStepped:Connect(function()
       if not FlyEnabled then return end
       local hrp2 = safeHRP()
@@ -119,7 +121,6 @@ local function startFly()
       if UserInputService:IsKeyDown(Enum.KeyCode.D) then dir += cam.CFrame.RightVector end
       if UserInputService:IsKeyDown(Enum.KeyCode.Space) then dir += Vector3.new(0,1,0) end
       if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then dir -= Vector3.new(0,1,0) end
-
       if dir.Magnitude > 0 then
          FlyBV.Velocity = dir.Unit * FlySpeed
       else
@@ -131,14 +132,9 @@ end
 PlayerTab:CreateToggle({
    Name = "Fly Mode",
    CurrentValue = false,
-   Callback = function(val)
-      FlyEnabled = val
-      if FlyEnabled then
-         startFly()
-      else
-         if FlyConn then FlyConn:Disconnect(); FlyConn = nil end
-         if FlyBV and FlyBV.Parent then FlyBV:Destroy(); FlyBV = nil end
-      end
+   Callback = function(v)
+      FlyEnabled = v
+      if FlyEnabled then startFly() else if FlyConn then FlyConn:Disconnect(); FlyConn=nil end; if FlyBV and FlyBV.Parent then FlyBV:Destroy(); FlyBV=nil end end
    end,
 })
 
@@ -157,104 +153,53 @@ local NoclipConn = nil
 PlayerTab:CreateToggle({
    Name = "Noclip",
    CurrentValue = false,
-   Callback = function(val)
-      NoclipEnabled = val
+   Callback = function(v)
+      NoclipEnabled = v
       if NoclipEnabled and not NoclipConn then
          NoclipConn = RunService.Stepped:Connect(function()
             local char = LocalPlayer.Character
             if not char then return end
             for _, part in ipairs(char:GetDescendants()) do
-               if part and part:IsA("BasePart") then
-                  pcall(function() part.CanCollide = false end)
-               end
+               if part and part:IsA("BasePart") then pcall(function() part.CanCollide = false end) end
             end
          end)
       elseif not NoclipEnabled and NoclipConn then
-         NoclipConn:Disconnect(); NoclipConn = nil
-         -- try to re-enable collisions
+         NoclipConn:Disconnect(); NoclipConn=nil
          local char = LocalPlayer.Character
-         if char then
-            for _, part in ipairs(char:GetDescendants()) do
-               if part and part:IsA("BasePart") then
-                  pcall(function() part.CanCollide = true end)
-               end
-            end
-         end
+         if char then for _, part in ipairs(char:GetDescendants()) do if part and part:IsA("BasePart") then pcall(function() part.CanCollide = true end) end end end
       end
    end,
 })
 
--- Reset Speed & Jump (placed near the end of Player tab)
 PlayerTab:CreateButton({
    Name = "Reset Speed & Jump",
    Callback = function()
-      local hum = safeHumanoid()
-      if hum then
-         pcall(function()
-            hum.WalkSpeed = 16
-            hum.UseJumpPower = true
-            hum.JumpPower = 50
-            hum.JumpHeight = 50/7
-         end)
-      end
+      local h = safeHumanoid()
+      if h then pcall(function() h.WalkSpeed = 16; h.UseJumpPower = true; h.JumpPower = 50; h.JumpHeight = 50/7 end) end
       SavedWalk = 16; SavedJump = 50
       WalkSlider:Set(16); JumpSlider:Set(50)
    end,
 })
 
--- Infinite Jump (placed last per your requested order 3)
-local InfiniteJumpEnabled = false
-PlayerTab:CreateToggle({
-   Name = "Infinite Jump",
-   CurrentValue = false,
-   Callback = function(val) InfiniteJumpEnabled = val end,
-})
-UserInputService.JumpRequest:Connect(function()
-   if InfiniteJumpEnabled then
-      local hum = safeHumanoid()
-      if hum then pcall(function() hum:ChangeState(Enum.HumanoidStateType.Jumping) end) end
-   end
-end)
-
--- Auto-apply settings on respawn
-LocalPlayer.CharacterAdded:Connect(function(char)
+-- Auto reapply on respawn
+LocalPlayer.CharacterAdded:Connect(function()
    task.wait(0.5)
-   local hum = safeHumanoid()
-   if hum then
-      pcall(function()
-         hum.WalkSpeed = SavedWalk
-         hum.UseJumpPower = true
-         hum.JumpPower = SavedJump
-         hum.JumpHeight = SavedJump / 7
-      end)
-   end
-   -- reparent FlyBV if fly still enabled
-   if FlyEnabled then
-      task.wait(0.2)
-      startFly()
-   end
-   -- ensure noclip re-applies if enabled
-   if NoclipEnabled and not NoclipConn then
-      NoclipConn = RunService.Stepped:Connect(function()
-         local char = LocalPlayer.Character
-         if not char then return end
-         for _, part in ipairs(char:GetDescendants()) do
-            if part and part:IsA("BasePart") then pcall(function() part.CanCollide = false end) end
-         end
-      end)
-   end
+   local h = safeHumanoid()
+   if h then pcall(function() h.WalkSpeed = SavedWalk; h.UseJumpPower = true; h.JumpPower = SavedJump; h.JumpHeight = SavedJump/7 end) end
+   if FlyEnabled then startFly() end
 end)
 
--------------------------------------------------
--- Teleport Tab (Player + Pos)
--------------------------------------------------
--- Teleport -> Player: stable dropdown + refresh
+----------------------------------------------------------------
+-- TELEPORT TAB
+----------------------------------------------------------------
+
+-- Player dropdown (stable)
 local SelectedPlayer = nil
-local playerOptions = getPlayerNameList()
+local initialPlayers = getPlayerNameList()
 local PlayerDropdown = TeleportTab:CreateDropdown({
    Name = "Select Player",
-   Options = playerOptions,
-   CurrentOption = {playerOptions[1]},
+   Options = initialPlayers,
+   CurrentOption = {initialPlayers[1]},
    MultipleOptions = false,
    Callback = function(opt)
       if typeof(opt) == "table" then opt = opt[1] end
@@ -278,47 +223,27 @@ TeleportTab:CreateButton({
       local target = Players:FindFirstChild(SelectedPlayer)
       local hrp = safeHRP()
       if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") and hrp then
-         pcall(function()
-            hrp.CFrame = target.Character.HumanoidRootPart.CFrame + Vector3.new(0,5,0)
-         end)
+         pcall(function() hrp.CFrame = target.Character.HumanoidRootPart.CFrame + Vector3.new(0,5,0) end)
       else
-         Rayfield:Notify("Teleport", "Target atau HRP tidak tersedia.", 4)
+         Rayfield:Notify("Teleport", "Target/HRP tidak tersedia.", 4)
       end
    end,
 })
 
--- Teleport -> Pos (ordered)
+-- Teleport pos
 local PosList = {
-   ["Pos 1"] = Vector3.new(5, 12, -404),
-   ["Pos 2"] = Vector3.new(-184, 128, 408),
-   ["Pos 3"] = Vector3.new(-166, 229, 652),
-   ["Pos 4"] = Vector3.new(-38, 406, 616),
-   ["Pos 5"] = Vector3.new(130, 651, 614),
-   ["Pos 6"] = Vector3.new(-247, 666, 735),
-   ["Pos 7"] = Vector3.new(-685, 641, 868),
-   ["Pos 8"] = Vector3.new(-658, 688, 1458),
-   ["Pos 9"] = Vector3.new(-507, 903, 1868),
-   ["Pos 10"] = Vector3.new(59, 950, 2089),
-   ["Pos 11"] = Vector3.new(52, 981, 2450),
-   ["Pos 12"] = Vector3.new(72, 1097, 2456),
-   ["Pos 13"] = Vector3.new(264, 1270, 2038),
-   ["Pos 14"] = Vector3.new(-419, 1302, 2395),
-   ["Pos 15"] = Vector3.new(-773, 1314, 2665),
-   ["Pos 16"] = Vector3.new(-837, 1475, 2626),
-   ["Pos 17"] = Vector3.new(-469, 1465, 2769),
-   ["Pos 18"] = Vector3.new(-468, 1537, 2837),
-   ["Pos 19"] = Vector3.new(-386, 1640, 2795),
-   ["Pos 20"] = Vector3.new(-208, 1666, 2749),
-   ["Pos 21"] = Vector3.new(-233, 1742, 2792),
-   ["Pos 22"] = Vector3.new(-423, 1740, 2799),
-   ["Pos 23"] = Vector3.new(-424, 1713, 3421),
-   ["Pos 24"] = Vector3.new(71, 1719, 3428),
-   ["Pos 25"] = Vector3.new(436, 1720, 3431),
-   ["Pos 26"] = Vector3.new(625, 1799, 3433),
-   ["Puncak"] = Vector3.new(781, 2163, 3921),
+   ["Pos 1"] = Vector3.new(5,12,-404), ["Pos 2"] = Vector3.new(-184,128,408), ["Pos 3"] = Vector3.new(-166,229,652),
+   ["Pos 4"] = Vector3.new(-38,406,616), ["Pos 5"] = Vector3.new(130,651,614), ["Pos 6"] = Vector3.new(-247,666,735),
+   ["Pos 7"] = Vector3.new(-685,641,868), ["Pos 8"] = Vector3.new(-658,688,1458), ["Pos 9"] = Vector3.new(-507,903,1868),
+   ["Pos 10"] = Vector3.new(59,950,2089), ["Pos 11"] = Vector3.new(52,981,2450), ["Pos 12"] = Vector3.new(72,1097,2456),
+   ["Pos 13"] = Vector3.new(264,1270,2038), ["Pos 14"] = Vector3.new(-419,1302,2395), ["Pos 15"] = Vector3.new(-773,1314,2665),
+   ["Pos 16"] = Vector3.new(-837,1475,2626), ["Pos 17"] = Vector3.new(-469,1465,2769), ["Pos 18"] = Vector3.new(-468,1537,2837),
+   ["Pos 19"] = Vector3.new(-386,1640,2795), ["Pos 20"] = Vector3.new(-208,1666,2749), ["Pos 21"] = Vector3.new(-233,1742,2792),
+   ["Pos 22"] = Vector3.new(-423,1740,2799), ["Pos 23"] = Vector3.new(-424,1713,3421), ["Pos 24"] = Vector3.new(71,1719,3428),
+   ["Pos 25"] = Vector3.new(436,1720,3431), ["Pos 26"] = Vector3.new(625,1799,3433), ["Puncak"] = Vector3.new(781,2163,3921)
 }
 local orderedPosNames = {}
-for i = 1, 26 do table.insert(orderedPosNames, ("Pos %d"):format(i)) end
+for i=1,26 do table.insert(orderedPosNames, ("Pos %d"):format(i)) end
 table.insert(orderedPosNames, "Puncak")
 
 local SelectedPos = orderedPosNames[1]
@@ -327,35 +252,23 @@ local PosDropdown = TeleportTab:CreateDropdown({
    Options = orderedPosNames,
    CurrentOption = {orderedPosNames[1]},
    MultipleOptions = false,
-   Callback = function(opt)
-      if typeof(opt) == "table" then opt = opt[1] end
-      SelectedPos = opt
-   end,
+   Callback = function(opt) if typeof(opt)=="table" then opt=opt[1] end; SelectedPos = opt end,
 })
-
 TeleportTab:CreateButton({
    Name = "Teleport ke Pos",
    Callback = function()
       local vec = PosList[SelectedPos]
       local hrp = safeHRP()
-      if vec and hrp then
-         pcall(function() hrp.CFrame = CFrame.new(vec + Vector3.new(0,3,0)) end)
-      else
-         Rayfield:Notify("Teleport", "Pilih pos dan pastikan HRP ada.", 4)
-      end
+      if vec and hrp then pcall(function() hrp.CFrame = CFrame.new(vec + Vector3.new(0,3,0)) end) else Rayfield:Notify("Teleport","Pilih pos dan pastikan HRP ada.",4) end
    end,
 })
 
--------------------------------------------------
--- Server Tab (Rejoin + Server Hop)
--------------------------------------------------
+----------------------------------------------------------------
+-- SERVER TAB
+----------------------------------------------------------------
 ServerTab:CreateButton({
    Name = "Rejoin Server",
-   Callback = function()
-      pcall(function()
-         TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, LocalPlayer)
-      end)
-   end,
+   Callback = function() pcall(function() TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, LocalPlayer) end) end,
 })
 
 ServerTab:CreateButton({
@@ -366,29 +279,26 @@ ServerTab:CreateButton({
          local body = game:HttpGet(url)
          return HttpService:JSONDecode(body)
       end)
-      if not ok or not res or not res.data then
-         Rayfield:Notify("Server Hop", "Gagal ambil daftar server.", 5); return
-      end
+      if not ok or not res or not res.data then Rayfield:Notify("Server Hop","Gagal ambil daftar server.",5); return end
       local ids = {}
-      for _, s in ipairs(res.data) do
-         if s.id ~= game.JobId and s.playing < s.maxPlayers then table.insert(ids, s.id) end
-      end
-      if #ids == 0 then Rayfield:Notify("Server Hop", "Tidak ada server lain.", 5); return end
-      local chosen = ids[math.random(1, #ids)]
+      for _, s in ipairs(res.data) do if s.id~=game.JobId and s.playing < s.maxPlayers then table.insert(ids,s.id) end end
+      if #ids==0 then Rayfield:Notify("Server Hop","Tidak ada server lain.",5); return end
+      local chosen = ids[math.random(1,#ids)]
       pcall(function() TeleportService:TeleportToPlaceInstance(game.PlaceId, chosen, LocalPlayer) end)
    end,
 })
 
--------------------------------------------------
--- Troll Tab (Aura Fling + Fling Selected)
--------------------------------------------------
--- Fling settings
+----------------------------------------------------------------
+-- TROLL TAB (improved fling)
+----------------------------------------------------------------
+
 local auraEnabled = false
 local auraRadius = 15
 local flingStrength = 300
-local lastFling = {}       -- cooldown per target
-local flingCooldown = 0.8  -- seconds
+local flingCooldown = 0.8
+local lastFling = {} -- per userId last fling time
 
+-- UI
 TrollTab:CreateSlider({
    Name = "Aura Fling Radius",
    Range = {5, 80},
@@ -397,7 +307,6 @@ TrollTab:CreateSlider({
    Suffix = "studs",
    Callback = function(v) auraRadius = v end,
 })
-
 TrollTab:CreateSlider({
    Name = "Fling Strength",
    Range = {50, 1500},
@@ -406,14 +315,13 @@ TrollTab:CreateSlider({
    Suffix = "power",
    Callback = function(v) flingStrength = v end,
 })
-
 TrollTab:CreateToggle({
-   Name = "Aura Fling",
+   Name = "Aura Fling (HRP-burst)",
    CurrentValue = false,
    Callback = function(v) auraEnabled = v end,
 })
 
--- Fling target dropdown (stable)
+-- Fling selected dropdown + loop + manual
 local selectedFlingTarget = nil
 local initNames = getPlayerNameList()
 local FlingDropdown = TrollTab:CreateDropdown({
@@ -421,12 +329,8 @@ local FlingDropdown = TrollTab:CreateDropdown({
    Options = initNames,
    CurrentOption = {initNames[1]},
    MultipleOptions = false,
-   Callback = function(opt)
-      if typeof(opt) == "table" then opt = opt[1] end
-      selectedFlingTarget = (opt ~= "No Players") and opt or nil
-   end,
+   Callback = function(opt) if typeof(opt)=="table" then opt=opt[1] end; selectedFlingTarget = (opt~="No Players") and opt or nil end,
 })
-
 local function refreshFlingDropdown()
    local opts = getPlayerNameList()
    FlingDropdown:Refresh(opts, true)
@@ -436,40 +340,53 @@ end
 Players.PlayerAdded:Connect(refreshFlingDropdown)
 Players.PlayerRemoving:Connect(refreshFlingDropdown)
 
--- Loop fling toggle + worker
 local loopFling = false
-TrollTab:CreateToggle({
-   Name = "Loop Fling Selected",
-   CurrentValue = false,
-   Callback = function(v) loopFling = v end,
-})
+TrollTab:CreateToggle({ Name = "Loop Fling Selected", CurrentValue = false, Callback = function(v) loopFling = v end })
 
 TrollTab:CreateButton({
    Name = "Fling Selected Player (once)",
    Callback = function()
-      if not selectedFlingTarget then Rayfield:Notify("Fling", "Pilih target dulu.", 4); return end
+      if not selectedFlingTarget then Rayfield:Notify("Fling","Pilih target dulu",4); return end
       local target = Players:FindFirstChild(selectedFlingTarget)
-      local hrp = safeHRP()
       if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
-         local tr = target.Character.HumanoidRootPart
-         pcall(function()
-            if hrp then
-               local dir = (tr.Position - hrp.Position)
-               if dir.Magnitude == 0 then dir = Vector3.new(0,1,0) end
-               tr.AssemblyLinearVelocity = dir.Unit * flingStrength + Vector3.new(0, 200, 0)
-            else
-               tr.AssemblyLinearVelocity = Vector3.new(0, flingStrength, 0)
+         task.spawn(function() -- run attempt worker
+            local tr = target.Character.HumanoidRootPart
+            local hrp = safeHRP()
+            local function safeMoveToBurst()
+               pcall(function()
+                  if hrp then
+                     -- burst towards them
+                     local dir = (tr.Position - hrp.Position)
+                     if dir.Magnitude == 0 then dir = Vector3.new(0,1,0) end
+                     hrp.Velocity = dir.Unit * (flingStrength*4)
+                     hrp.RotVelocity = Vector3.new(0,50,0)
+                     task.wait(0.08)
+                     hrp.Velocity = Vector3.zero
+                     hrp.RotVelocity = Vector3.zero
+                  end
+               end)
             end
+            local function setTargetVelocity()
+               pcall(function()
+                  tr.AssemblyLinearVelocity = (tr.Position - (hrp and hrp.Position or tr.Position)).Unit * flingStrength + Vector3.new(0,200,0)
+               end)
+            end
+            -- try sequence
+            setTargetVelocity()
+            task.wait(0.12)
+            safeMoveToBurst()
+            task.wait(0.12)
+            setTargetVelocity()
          end)
       else
-         Rayfield:Notify("Fling", "Target tidak tersedia.", 4)
+         Rayfield:Notify("Fling","Target tidak tersedia",4)
       end
    end,
 })
 
--- Heartbeat worker: aura fling + loop fling
+-- Loop fling worker + Aura worker
 RunService.Heartbeat:Connect(function()
-   -- Aura fling: move local HRP quickly toward target to cause collisions
+   -- aura fling: try to burst toward every nearby player (with cooldown per-player)
    if auraEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
       local root = LocalPlayer.Character.HumanoidRootPart
       for _, plr in ipairs(Players:GetPlayers()) do
@@ -478,20 +395,31 @@ RunService.Heartbeat:Connect(function()
             local dist = (tr.Position - root.Position).Magnitude
             if dist <= auraRadius then
                local now = os.clock()
-               if not lastFling[plr.UserId] or (now - lastFling[plr.UserId] >= flingCooldown) then
+               if (not lastFling[plr.UserId]) or (now - lastFling[plr.UserId] >= flingCooldown) then
                   lastFling[plr.UserId] = now
-                  pcall(function()
-                     local dir = (tr.Position - root.Position)
-                     if dir.Magnitude == 0 then dir = Vector3.new(0,1,0) end
-                     -- short high-velocity burst towards them
-                     root.Velocity = dir.Unit * (flingStrength * 4)
-                     root.RotVelocity = Vector3.new(0, 50, 0)
-                     -- small delay then stop movement so we can re-burst later if needed
-                     task.delay(0.08, function()
-                        pcall(function()
+                  -- spawn the fling attempts so heartbeat loop is not blocked
+                  task.spawn(function()
+                     pcall(function()
+                        -- 1) try assembly velocity on target
+                        tr.AssemblyLinearVelocity = (tr.Position - root.Position).Unit * (flingStrength) + Vector3.new(0,200,0)
+                     end)
+                     task.wait(0.09)
+                     -- 2) short burst of local HRP toward target
+                     pcall(function()
+                        if root then
+                           local dir = (tr.Position - root.Position)
+                           if dir.Magnitude == 0 then dir = Vector3.new(0,1,0) end
+                           root.Velocity = dir.Unit * (flingStrength * 4)
+                           root.RotVelocity = Vector3.new(0,50,0)
+                           task.wait(0.08)
                            root.Velocity = Vector3.zero
                            root.RotVelocity = Vector3.zero
-                        end)
+                        end
+                     end)
+                     task.wait(0.08)
+                     -- 3) final assembly velocity attempt
+                     pcall(function()
+                        tr.AssemblyLinearVelocity = (tr.Position - root.Position).Unit * (flingStrength*1.2) + Vector3.new(0,200,0)
                      end)
                   end)
                end
@@ -500,17 +428,17 @@ RunService.Heartbeat:Connect(function()
       end
    end
 
-   -- Loop fling selected target
+   -- loop fling selected
    if loopFling and selectedFlingTarget then
       local tgt = Players:FindFirstChild(selectedFlingTarget)
-      local hrp = safeHRP()
       if tgt and tgt.Character and tgt.Character:FindFirstChild("HumanoidRootPart") then
          local tr = tgt.Character.HumanoidRootPart
+         local hrp = safeHRP()
          pcall(function()
             if hrp then
                local dir = (tr.Position - hrp.Position)
                if dir.Magnitude == 0 then dir = Vector3.new(0,1,0) end
-               tr.AssemblyLinearVelocity = dir.Unit * flingStrength + Vector3.new(0, 200, 0)
+               tr.AssemblyLinearVelocity = dir.Unit * flingStrength + Vector3.new(0,200,0)
             else
                tr.AssemblyLinearVelocity = Vector3.new(0, flingStrength, 0)
             end
@@ -518,3 +446,10 @@ RunService.Heartbeat:Connect(function()
       end
    end
 end)
+
+-- refresh players lists for fling dropdowns
+Players.PlayerAdded:Connect(function() refreshFlingDropdown(); refreshPlayerDropdown() end)
+Players.PlayerRemoving:Connect(function() refreshFlingDropdown(); refreshPlayerDropdown() end)
+
+-- final note: UI built
+Rayfield:Notify("Ready", "Skrip sudah dimuat. Coba Aura Fling + Fling Selected.", 5)
