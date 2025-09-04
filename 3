@@ -76,21 +76,25 @@ local JumpPowerSlider = PlayerTab:CreateSlider({
    end,
 })
 
--- 🟢 Reset Button
+-- 🟢 Reset Button (fix)
 local ResetButton = PlayerTab:CreateButton({
    Name = "Reset WalkSpeed & Jump",
    Callback = function()
       SavedWalkSpeed = 16
       SavedJumpPower = 50
+
       local humanoid = game.Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
       if humanoid then
-         humanoid.WalkSpeed = 16
+         humanoid.WalkSpeed = SavedWalkSpeed
          humanoid.UseJumpPower = true
-         humanoid.JumpPower = 50
-         humanoid.JumpHeight = 7.2
+         humanoid.JumpPower = SavedJumpPower
+         humanoid.JumpHeight = SavedJumpPower / 7
       end
-      WalkSpeedSlider:Set(16)
-      JumpPowerSlider:Set(50)
+
+      task.spawn(function()
+         WalkSpeedSlider:Set(SavedWalkSpeed)
+         JumpPowerSlider:Set(SavedJumpPower)
+      end)
    end,
 })
 
