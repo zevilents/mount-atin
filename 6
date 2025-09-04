@@ -1,0 +1,237 @@
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+local Window = Rayfield:CreateWindow({
+   Name = "Rayfield Example Window",
+   Icon = 0,
+   LoadingTitle = "Rayfield Interface Suite",
+   LoadingSubtitle = "by Sirius",
+   ShowText = "Rayfield",
+   Theme = "Default",
+   ToggleUIKeybind = "K",
+   ConfigurationSaving = {
+      Enabled = true,
+      FolderName = nil,
+      FileName = "Big Hub"
+   }
+})
+
+local PlayerTab = Window:CreateTab("Player")
+
+-------------------------------------------------
+-- WalkSpeed Slider
+-------------------------------------------------
+local WalkSpeedSlider = PlayerTab:CreateSlider({
+   Name = "WalkSpeed",
+   Range = {16, 200},
+   Increment = 1,
+   Suffix = "Speed",
+   CurrentValue = 16,
+   Flag = "WalkSpeedSlider",
+   Callback = function(Value)
+      local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+      if hum then hum.WalkSpeed = Value end
+   end,
+})
+
+-------------------------------------------------
+-- JumpPower Slider
+-------------------------------------------------
+local JumpPowerSlider = PlayerTab:CreateSlider({
+   Name = "JumpPower",
+   Range = {50, 300},
+   Increment = 1,
+   Suffix = "Power",
+   CurrentValue = 50,
+   Flag = "JumpPowerSlider",
+   Callback = function(Value)
+      local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+      if hum then
+         hum.UseJumpPower = true
+         hum.JumpPower = Value
+      end
+   end,
+})
+
+-------------------------------------------------
+-- Reset WalkSpeed & Jump
+-------------------------------------------------
+local ResetButton = PlayerTab:CreateButton({
+   Name = "Reset WalkSpeed & Jump",
+   Callback = function()
+      local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+      if hum then
+         hum.WalkSpeed = 16
+         hum.UseJumpPower = true
+         hum.JumpPower = 50
+      end
+      WalkSpeedSlider:Set(16)
+      JumpPowerSlider:Set(50)
+   end,
+})
+
+-------------------------------------------------
+-- Infinite Jump
+-------------------------------------------------
+local InfiniteJumpEnabled = false
+PlayerTab:CreateToggle({
+   Name = "Infinite Jump",
+   CurrentValue = false,
+   Flag = "InfiniteJump",
+   Callback = function(Value)
+      InfiniteJumpEnabled = Value
+   end,
+})
+
+UserInputService.JumpRequest:Connect(function()
+   if InfiniteJumpEnabled and LocalPlayer.Character then
+      local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+      if hum then
+         hum:ChangeState("Jumping")
+      end
+   end
+end)
+
+-------------------------------------------------
+-- Fly Mode + Speed
+-------------------------------------------------
+local FlyEnabled = false
+local FlySpeed = 50
+local FlyConnection
+
+local function StartFly()
+   if FlyConnection then FlyConnection:Disconnect() end
+   FlyConnection = RunService.RenderStepped:Connect(function()
+      if FlyEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+         local hrp = LocalPlayer.Character.HumanoidRootPart
+         local moveDir = Vector3.zero
+         if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir += hrp.CFrame.LookVector end
+         if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir -= hrp.CFrame.LookVector end
+         if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir -= hrp.CFrame.RightVector end
+         if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir += hrp.CFrame.RightVector end
+         if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDir += Vector3.new(0,1,0) end
+         if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then moveDir -= Vector3.new(0,1,0) end
+         if moveDir.Magnitude > 0 then
+            hrp.Velocity = moveDir.Unit * FlySpeed
+         else
+            hrp.Velocity = Vector3.zero
+         end
+      end
+   end)
+end
+
+PlayerTab:CreateToggle({
+   Name = "Fly Mode",
+   CurrentValue = false,
+   Flag = "FlyMode",
+   Callback = function(Value)
+      FlyEnabled = Value
+      if FlyEnabled then
+         StartFly()
+      else
+         if FlyConnection then FlyConnection:Disconnect() end
+         local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+         if hrp then hrp.Velocity = Vector3.zero end
+      end
+   end,
+})
+
+PlayerTab:CreateSlider({
+   Name = "Fly Speed",
+   Range = {10, 200},
+   Increment = 5,
+   Suffix = "Speed",
+   CurrentValue = 50,
+   Flag = "FlySpeed",
+   Callback = function(Value)
+      FlySpeed = Value
+   end,
+})
+
+-------------------------------------------------
+-- Noclip
+-------------------------------------------------
+local NoclipEnabled = false
+local NoclipConnection
+
+PlayerTab:CreateToggle({
+   Name = "Noclip",
+   CurrentValue = false,
+   Flag = "Noclip",
+   Callback = function(Value)
+      NoclipEnabled = Value
+      if NoclipEnabled then
+         NoclipConnection = RunService.Stepped:Connect(function()
+            if LocalPlayer.Character then
+               for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
+                  if part:IsA("BasePart") and part.CanCollide then
+                     part.CanCollide = false
+                  end
+               end
+            end
+         end)
+      else
+         if NoclipConnection then NoclipConnection:Disconnect() end
+      end
+   end,
+})
+
+-------------------------------------------------
+-- Teleport to Player (Dropdown + Button)
+-------------------------------------------------
+local SelectedTarget = nil
+
+local function GetPlayerList()
+   local names = {}
+   for _, plr in pairs(Players:GetPlayers()) do
+      if plr ~= LocalPlayer then
+         table.insert(names, plr.Name)
+      end
+   end
+   if #names == 0 then
+      table.insert(names, "No Players")
+   end
+   return names
+end
+
+local TPDropdown = PlayerTab:CreateDropdown({
+   Name = "Select Player",
+   Options = GetPlayerList(),
+   CurrentOption = {"No Players"},
+   MultipleOptions = false,
+   Flag = "TPDropdown",
+   Callback = function(Option)
+      if Option ~= "No Players" then
+         SelectedTarget = Option
+      else
+         SelectedTarget = nil
+      end
+   end,
+})
+
+local TPButton = PlayerTab:CreateButton({
+   Name = "Teleport to Selected Player",
+   Callback = function()
+      if not SelectedTarget then return end
+      local target = Players:FindFirstChild(SelectedTarget)
+      local char = LocalPlayer.Character
+      if target and target.Character and char then
+         local hrp = char:FindFirstChild("HumanoidRootPart")
+         local targetHrp = target.Character:FindFirstChild("HumanoidRootPart")
+         if hrp and targetHrp then
+            hrp.CFrame = targetHrp.CFrame + Vector3.new(0,2,0)
+         end
+      end
+   end,
+})
+
+local function RefreshTPList()
+   TPDropdown:Refresh(GetPlayerList(), true)
+end
+
+Players.PlayerAdded:Connect(RefreshTPList)
+Players.PlayerRemoving:Connect(RefreshTPList)
