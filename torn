@@ -1,0 +1,84 @@
+--// Simple Tornado Parts GUI (WORKING EFFECT)
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+
+-- Config default
+local config = {
+    radius = 40,             -- Jarak maksimum tornado
+    attractionStrength = 80, -- Kekuatan tarik
+    spinStrength = 60        -- Kekuatan muter
+}
+
+-- GUI
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "TornadoPartsGUI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 220, 0, 120)
+MainFrame.Position = UDim2.new(0.5, -110, 0.5, -60)
+MainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+MainFrame.Parent = ScreenGui
+
+local UICorner = Instance.new("UICorner", MainFrame)
+UICorner.CornerRadius = UDim.new(0, 10)
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 0, 30)
+Title.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+Title.Text = "🌪 Tornado Parts"
+Title.Font = Enum.Font.SourceSansBold
+Title.TextSize = 18
+Title.TextColor3 = Color3.new(1,1,1)
+Title.Parent = MainFrame
+
+local ToggleButton = Instance.new("TextButton")
+ToggleButton.Size = UDim2.new(1, -20, 0, 40)
+ToggleButton.Position = UDim2.new(0, 10, 0, 40)
+ToggleButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+ToggleButton.Text = "OFF"
+ToggleButton.Font = Enum.Font.SourceSansBold
+ToggleButton.TextSize = 20
+ToggleButton.TextColor3 = Color3.new(1,1,1)
+ToggleButton.Parent = MainFrame
+Instance.new("UICorner", ToggleButton).CornerRadius = UDim.new(0, 8)
+
+-- Tornado Core
+local ringPartsEnabled = false
+
+local function isValidPart(part)
+    return part:IsA("BasePart") and not part.Anchored and not part:IsDescendantOf(LocalPlayer.Character)
+end
+
+RunService.Heartbeat:Connect(function()
+    if not ringPartsEnabled then return end
+    local char = LocalPlayer.Character
+    local root = char and char:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+
+    for _, part in pairs(workspace:GetDescendants()) do
+        if isValidPart(part) then
+            local dir = (root.Position - part.Position)
+            local dist = dir.Magnitude
+            if dist < config.radius then
+                -- Tarik ke arah player
+                local pull = dir.Unit * config.attractionStrength
+
+                -- Tambahkan gaya muter (sumbu Y)
+                local spin = Vector3.new(-dir.Z, 0, dir.X).Unit * config.spinStrength
+
+                -- Gabungkan
+                part.Velocity = pull + spin
+            end
+        end
+    end
+end)
+
+-- Toggle Button
+ToggleButton.MouseButton1Click:Connect(function()
+    ringPartsEnabled = not ringPartsEnabled
+    ToggleButton.Text = ringPartsEnabled and "ON" or "OFF"
+    ToggleButton.BackgroundColor3 = ringPartsEnabled and Color3.fromRGB(50,200,50) or Color3.fromRGB(200,50,50)
+end)
