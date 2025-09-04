@@ -1,0 +1,485 @@
+-- Final Rayfield Hub (fixed dropdowns, server hop, tp pos, fling + aura fling)
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local TeleportService = game:GetService("TeleportService")
+local HttpService = game:GetService("HttpService")
+
+-- Window
+local Window = Rayfield:CreateWindow({
+   Name = "Rayfield Hub",
+   LoadingTitle = "Rayfield Interface Suite",
+   LoadingSubtitle = "by Sirius",
+   Theme = "Default",
+   ToggleUIKeybind = "K",
+   ConfigurationSaving = {
+      Enabled = true,
+      FolderName = nil,
+      FileName = "Big Hub"
+   }
+})
+
+-- Tabs
+local PlayerTab   = Window:CreateTab("Player", 4483362458)
+local TeleportTab = Window:CreateTab("Teleport", 4483362458)
+local ServerTab   = Window:CreateTab("Server", 4483362458)
+local TrollTab    = Window:CreateTab("Troll", 4483362458)
+
+-- Helpers
+local function safeGetHumanoid()
+   local char = LocalPlayer.Character
+   if not char then return nil end
+   return char:FindFirstChildOfClass("Humanoid")
+end
+local function safeGetHRP()
+   local char = LocalPlayer.Character
+   if not char then return nil end
+   return char:FindFirstChild("HumanoidRootPart")
+end
+local function getPlayerNameList()
+   local list = {}
+   for _, p in ipairs(Players:GetPlayers()) do
+      if p ~= LocalPlayer then table.insert(list, p.Name) end
+   end
+   if #list == 0 then table.insert(list, "No Players") end
+   return list
+end
+
+----------------------------------------------------------------
+-- PLAYER TAB (urut: WalkSpeed, JumpPower, InfiniteJump, Fly, FlySpeed, Noclip, Reset)
+----------------------------------------------------------------
+
+-- WalkSpeed
+local SavedWalk = 16
+local WalkSlider = PlayerTab:CreateSlider({
+   Name = "WalkSpeed",
+   Range = {16, 500},
+   Increment = 1,
+   Suffix = "Speed",
+   CurrentValue = SavedWalk,
+   Callback = function(v)
+      SavedWalk = v
+      local hum = safeGetHumanoid()
+      if hum then pcall(function() hum.WalkSpeed = v end) end
+   end,
+})
+
+-- JumpPower
+local SavedJump = 50
+local JumpSlider = PlayerTab:CreateSlider({
+   Name = "JumpPower",
+   Range = {50, 500},
+   Increment = 1,
+   Suffix = "Power",
+   CurrentValue = SavedJump,
+   Callback = function(v)
+      SavedJump = v
+      local hum = safeGetHumanoid()
+      if hum then
+         pcall(function()
+            hum.UseJumpPower = true
+            hum.JumpPower = v
+            hum.JumpHeight = v / 7
+         end)
+      end
+   end,
+})
+
+-- Infinite Jump (placed here per requested order)
+local InfiniteJumpEnabled = false
+PlayerTab:CreateToggle({
+   Name = "Infinite Jump",
+   CurrentValue = false,
+   Callback = function(val) InfiniteJumpEnabled = val end,
+})
+UserInputService.JumpRequest:Connect(function()
+   if InfiniteJumpEnabled then
+      local hum = safeGetHumanoid()
+      if hum then pcall(function() hum:ChangeState(Enum.HumanoidStateType.Jumping) end) end
+   end
+end)
+
+-- Fly Mode + internal management
+local FlyEnabled = false
+local FlySpeed = 50
+local FlyConn = nil
+local FlyBV = nil
+
+local function startFly()
+   if FlyConn then FlyConn:Disconnect() FlyConn = nil end
+   local hrp = safeGetHRP()
+   if not hrp then return end
+   -- create BV if not exists
+   if not FlyBV or not FlyBV.Parent then
+      FlyBV = Instance.new("BodyVelocity")
+      FlyBV.Name = "RayfieldFlyBV"
+      FlyBV.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+      FlyBV.Velocity = Vector3.zero
+      FlyBV.Parent = hrp
+   else
+      FlyBV.Parent = hrp
+   end
+
+   FlyConn = RunService.RenderStepped:Connect(function()
+      if not FlyEnabled then return end
+      local hrp2 = safeGetHRP()
+      if not hrp2 then return end
+      local cam = workspace.CurrentCamera
+      local dir = Vector3.zero
+      if UserInputService:IsKeyDown(Enum.KeyCode.W) then dir += cam.CFrame.LookVector end
+      if UserInputService:IsKeyDown(Enum.KeyCode.S) then dir -= cam.CFrame.LookVector end
+      if UserInputService:IsKeyDown(Enum.KeyCode.A) then dir -= cam.CFrame.RightVector end
+      if UserInputService:IsKeyDown(Enum.KeyCode.D) then dir += cam.CFrame.RightVector end
+      if UserInputService:IsKeyDown(Enum.KeyCode.Space) then dir += Vector3.new(0,1,0) end
+      if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then dir -= Vector3.new(0,1,0) end
+
+      if dir.Magnitude > 0 then
+         FlyBV.Velocity = dir.Unit * FlySpeed
+      else
+         FlyBV.Velocity = Vector3.zero
+      end
+   end)
+end
+
+PlayerTab:CreateToggle({
+   Name = "Fly Mode",
+   CurrentValue = false,
+   Callback = function(val)
+      FlyEnabled = val
+      if FlyEnabled then
+         startFly()
+      else
+         if FlyConn then FlyConn:Disconnect() FlyConn = nil end
+         if FlyBV and FlyBV.Parent then FlyBV:Destroy() FlyBV = nil end
+      end
+   end,
+})
+
+-- Fly Speed
+PlayerTab:CreateSlider({
+   Name = "Fly Speed",
+   Range = {10, 500},
+   Increment = 1,
+   CurrentValue = FlySpeed,
+   Suffix = "Speed",
+   Callback = function(v) FlySpeed = v end,
+})
+
+-- Noclip
+local NoclipEnabled = false
+local NoclipConn = nil
+PlayerTab:CreateToggle({
+   Name = "Noclip",
+   CurrentValue = false,
+   Callback = function(val)
+      NoclipEnabled = val
+      if NoclipEnabled and not NoclipConn then
+         NoclipConn = RunService.Stepped:Connect(function()
+            local char = LocalPlayer.Character
+            if not char then return end
+            for _, part in ipairs(char:GetDescendants()) do
+               if part and part:IsA("BasePart") then
+                  pcall(function() part.CanCollide = false end)
+               end
+            end
+         end)
+      elseif not NoclipEnabled and NoclipConn then
+         NoclipConn:Disconnect()
+         NoclipConn = nil
+      end
+   end,
+})
+
+-- Reset Speed & Jump (placed before infinite jump or after per request; keeping here in order)
+PlayerTab:CreateButton({
+   Name = "Reset Speed & Jump",
+   Callback = function()
+      local hum = safeGetHumanoid()
+      if hum then
+         pcall(function()
+            hum.WalkSpeed = 16
+            hum.UseJumpPower = true
+            hum.JumpPower = 50
+            hum.JumpHeight = 50 / 7
+         end)
+      end
+      SavedWalk = 16; SavedJump = 50
+      WalkSlider:Set(16)
+      JumpSlider:Set(50)
+   end,
+})
+
+----------------------------------------------------------------
+-- TELEPORT TAB (Teleport to Player + Teleport to Pos)
+----------------------------------------------------------------
+
+-- Teleport -> Player (stable dropdown + refresh)
+local SelectedPlayer = nil
+local initialPlayers = getPlayerNameList()
+local PlayerDropdown = TeleportTab:CreateDropdown({
+   Name = "Select Player",
+   Options = initialPlayers,
+   CurrentOption = {initialPlayers[1]},
+   MultipleOptions = false,
+   Callback = function(opt)
+      if typeof(opt) == "table" then opt = opt[1] end
+      SelectedPlayer = (opt ~= "No Players") and opt or nil
+   end,
+})
+
+TeleportTab:CreateButton({
+   Name = "Teleport to Player",
+   Callback = function()
+      if not SelectedPlayer then Rayfield:Notify("Teleport", "Pilih player dulu.", 4); return end
+      local target = Players:FindFirstChild(SelectedPlayer)
+      local hrp = safeGetHRP()
+      if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") and hrp then
+         hrp.CFrame = target.Character.HumanoidRootPart.CFrame + Vector3.new(0,5,0)
+      else
+         Rayfield:Notify("Teleport", "Gagal teleport: target/HRP tidak tersedia.", 4)
+      end
+   end,
+})
+
+-- auto refresh player list
+local function refreshPlayerDropdown()
+   local opts = getPlayerNameList()
+   PlayerDropdown:Refresh(opts, true)
+   -- set selection to first option
+   if opts[1] then PlayerDropdown:Set({opts[1]}) end
+   if opts[1] ~= "No Players" then SelectedPlayer = opts[1] else SelectedPlayer = nil end
+end
+Players.PlayerAdded:Connect(refreshPlayerDropdown)
+Players.PlayerRemoving:Connect(refreshPlayerDropdown)
+
+-- Teleport -> Pos (use ordered list + safe dropdown)
+local PosList = {
+   ["Pos 1"] = Vector3.new(5, 12, -404),
+   ["Pos 2"] = Vector3.new(-184, 128, 408),
+   ["Pos 3"] = Vector3.new(-166, 229, 652),
+   ["Pos 4"] = Vector3.new(-38, 406, 616),
+   ["Pos 5"] = Vector3.new(130, 651, 614),
+   ["Pos 6"] = Vector3.new(-247, 666, 735),
+   ["Pos 7"] = Vector3.new(-685, 641, 868),
+   ["Pos 8"] = Vector3.new(-658, 688, 1458),
+   ["Pos 9"] = Vector3.new(-507, 903, 1868),
+   ["Pos 10"] = Vector3.new(59, 950, 2089),
+   ["Pos 11"] = Vector3.new(52, 981, 2450),
+   ["Pos 12"] = Vector3.new(72, 1097, 2456),
+   ["Pos 13"] = Vector3.new(264, 1270, 2038),
+   ["Pos 14"] = Vector3.new(-419, 1302, 2395),
+   ["Pos 15"] = Vector3.new(-773, 1314, 2665),
+   ["Pos 16"] = Vector3.new(-837, 1475, 2626),
+   ["Pos 17"] = Vector3.new(-469, 1465, 2769),
+   ["Pos 18"] = Vector3.new(-468, 1537, 2837),
+   ["Pos 19"] = Vector3.new(-386, 1640, 2795),
+   ["Pos 20"] = Vector3.new(-208, 1666, 2749),
+   ["Pos 21"] = Vector3.new(-233, 1742, 2792),
+   ["Pos 22"] = Vector3.new(-423, 1740, 2799),
+   ["Pos 23"] = Vector3.new(-424, 1713, 3421),
+   ["Pos 24"] = Vector3.new(71, 1719, 3428),
+   ["Pos 25"] = Vector3.new(436, 1720, 3431),
+   ["Pos 26"] = Vector3.new(625, 1799, 3433),
+   ["Puncak"] = Vector3.new(781, 2163, 3921),
+}
+local orderedPosNames = {}
+for i = 1, 26 do table.insert(orderedPosNames, ("Pos %d"):format(i)) end
+table.insert(orderedPosNames, "Puncak")
+
+local SelectedPosName = orderedPosNames[1]
+local PosDropdown = TeleportTab:CreateDropdown({
+   Name = "Select Pos",
+   Options = orderedPosNames,
+   CurrentOption = {orderedPosNames[1]},
+   MultipleOptions = false,
+   Callback = function(opt)
+      if typeof(opt) == "table" then opt = opt[1] end
+      SelectedPosName = opt
+   end,
+})
+
+TeleportTab:CreateButton({
+   Name = "Teleport ke Pos",
+   Callback = function()
+      local vec = PosList[SelectedPosName]
+      local hrp = safeGetHRP()
+      if vec and hrp then
+         hrp.CFrame = CFrame.new(vec + Vector3.new(0,3,0))
+      else
+         Rayfield:Notify("Teleport", "Pilih pos yang valid.", 4)
+      end
+   end,
+})
+
+----------------------------------------------------------------
+-- SERVER TAB (Rejoin, Server Hop)
+----------------------------------------------------------------
+
+ServerTab:CreateButton({
+   Name = "Rejoin Server",
+   Callback = function()
+      pcall(function()
+         TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, LocalPlayer)
+      end)
+   end,
+})
+
+ServerTab:CreateButton({
+   Name = "Server Hop",
+   Callback = function()
+      -- ambil daftar server publik, pilih server lain acak
+      local ok, res = pcall(function()
+         local url = ("https://games.roblox.com/v1/games/%d/servers/Public?sortOrder=Asc&limit=100"):format(game.PlaceId)
+         local body = game:HttpGet(url)
+         return HttpService:JSONDecode(body)
+      end)
+      if not ok or not res or not res.data then
+         Rayfield:Notify("Server Hop", "Gagal mengambil daftar server.", 5); return
+      end
+      local candidates = {}
+      for _, s in ipairs(res.data) do
+         if s.id ~= game.JobId and s.playing < s.maxPlayers then
+            table.insert(candidates, s.id)
+         end
+      end
+      if #candidates == 0 then
+         Rayfield:Notify("Server Hop", "Tidak ada server tersedia.", 5); return
+      end
+      local chosen = candidates[math.random(1, #candidates)]
+      pcall(function()
+         TeleportService:TeleportToPlaceInstance(game.PlaceId, chosen, LocalPlayer)
+      end)
+   end,
+})
+
+----------------------------------------------------------------
+-- TROLL TAB (Aura Fling + Target Fling)
+----------------------------------------------------------------
+
+-- Aura Fling
+local auraEnabled = false
+local auraRadius = 15
+TrollTab:CreateSlider({
+   Name = "Aura Fling Radius",
+   Range = {5, 60},
+   Increment = 1,
+   CurrentValue = auraRadius,
+   Suffix = "studs",
+   Callback = function(v) auraRadius = v end,
+})
+TrollTab:CreateToggle({
+   Name = "Aura Fling",
+   CurrentValue = false,
+   Callback = function(v) auraEnabled = v end,
+})
+
+-- Target Fling (dropdown + strength + loop)
+local SelectedFlingTarget = nil
+local initialFlingPlayers = getPlayerNameList()
+local FlingDropdown = TrollTab:CreateDropdown({
+   Name = "Select Player to Fling",
+   Options = initialFlingPlayers,
+   CurrentOption = {initialFlingPlayers[1]},
+   MultipleOptions = false,
+   Callback = function(opt)
+      if typeof(opt) == "table" then opt = opt[1] end
+      SelectedFlingTarget = (opt ~= "No Players") and opt or nil
+   end,
+})
+
+local flingStrength = 200
+TrollTab:CreateSlider({
+   Name = "Fling Strength",
+   Range = {50, 1000},
+   Increment = 10,
+   CurrentValue = flingStrength,
+   Callback = function(v) flingStrength = v end,
+})
+
+local loopFling = false
+local loopFlingConn = nil
+TrollTab:CreateToggle({
+   Name = "Loop Fling Selected",
+   CurrentValue = false,
+   Callback = function(v)
+      loopFling = v
+      if not loopFling and loopFlingConn then loopFlingConn:Disconnect() loopFlingConn = nil end
+   end,
+})
+
+TrollTab:CreateButton({
+   Name = "Fling Selected Player",
+   Callback = function()
+      if not SelectedFlingTarget then Rayfield:Notify("Fling", "Pilih target dulu.", 4); return end
+      local target = Players:FindFirstChild(SelectedFlingTarget)
+      if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+         local tr = target.Character.HumanoidRootPart
+         -- simple assembly velocity fling away from you
+         local hrp = safeGetHRP()
+         if hrp then
+            local dir = (tr.Position - hrp.Position)
+            if dir.Magnitude == 0 then dir = Vector3.new(0,1,0) end
+            pcall(function()
+               tr.AssemblyLinearVelocity = dir.Unit * flingStrength + Vector3.new(0, 150, 0)
+            end)
+         else
+            -- fling in random direction
+            pcall(function()
+               tr.AssemblyLinearVelocity = Vector3.new(0, flingStrength, 0)
+            end)
+         end
+      else
+         Rayfield:Notify("Fling", "Target tidak tersedia.", 4)
+      end
+   end,
+})
+
+-- Loop fling worker
+RunService.Heartbeat:Connect(function()
+   -- Aura fling
+   if auraEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+      local root = LocalPlayer.Character.HumanoidRootPart
+      for _, plr in ipairs(Players:GetPlayers()) do
+         if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+            local tr = plr.Character.HumanoidRootPart
+            local dist = (tr.Position - root.Position).Magnitude
+            if dist <= auraRadius then
+               pcall(function()
+                  tr.AssemblyLinearVelocity = (tr.Position - root.Position).Unit * (flingStrength) + Vector3.new(0, 200, 0)
+               end)
+            end
+         end
+      end
+   end
+
+   -- Loop fling selected
+   if loopFling and SelectedFlingTarget then
+      local tgt = Players:FindFirstChild(SelectedFlingTarget)
+      local hrp = safeGetHRP()
+      if tgt and tgt.Character and tgt.Character:FindFirstChild("HumanoidRootPart") and hrp then
+         local tr = tgt.Character.HumanoidRootPart
+         pcall(function()
+            local dir = (tr.Position - hrp.Position)
+            if dir.Magnitude == 0 then dir = Vector3.new(0,1,0) end
+            tr.AssemblyLinearVelocity = dir.Unit * flingStrength + Vector3.new(0, 200, 0)
+         end)
+      end
+   end
+end)
+
+-- refresh fling dropdown together with player list
+local function refreshFlingDropdown()
+   local opts = getPlayerNameList()
+   FlingDropdown:Refresh(opts, true)
+   if opts[1] then FlingDropdown:Set({opts[1]}) end
+   SelectedFlingTarget = (opts[1] ~= "No Players") and opts[1] or nil
+end
+Players.PlayerAdded:Connect(refreshFlingDropdown)
+Players.PlayerRemoving:Connect(refreshFlingDropdown)
+
+-- also refresh teleport player dropdowns when players change
+Players.PlayerAdded:Connect(refreshPlayerDropdown or function() end)
+Players.PlayerRemoving:Connect(refreshPlayerDropdown or function() end)
