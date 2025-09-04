@@ -1,0 +1,127 @@
+--// Simple Tornado Parts GUI
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local HttpService = game:GetService("HttpService")
+local LocalPlayer = Players.LocalPlayer
+
+-- Config default
+local config = {
+    radius = 50,
+    height = 100,
+    rotationSpeed = 10,
+    attractionStrength = 1000
+}
+
+-- GUI
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "TornadoPartsGUI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 280, 0, 200)
+MainFrame.Position = UDim2.new(0.5, -140, 0.5, -100)
+MainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+MainFrame.Parent = ScreenGui
+
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 10)
+UICorner.Parent = MainFrame
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 0, 30)
+Title.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+Title.Text = "🌪 Tornado Parts (Simple)"
+Title.Font = Enum.Font.SourceSansBold
+Title.TextSize = 18
+Title.TextColor3 = Color3.new(1,1,1)
+Title.Parent = MainFrame
+
+-- Toggle Button
+local ToggleButton = Instance.new("TextButton")
+ToggleButton.Size = UDim2.new(1, -20, 0, 40)
+ToggleButton.Position = UDim2.new(0, 10, 0, 50)
+ToggleButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+ToggleButton.Text = "OFF"
+ToggleButton.Font = Enum.Font.SourceSansBold
+ToggleButton.TextSize = 20
+ToggleButton.TextColor3 = Color3.new(1,1,1)
+ToggleButton.Parent = MainFrame
+
+local UICorner2 = Instance.new("UICorner")
+UICorner2.CornerRadius = UDim.new(0, 8)
+UICorner2.Parent = ToggleButton
+
+-- Reset Button
+local ResetButton = Instance.new("TextButton")
+ResetButton.Size = UDim2.new(1, -20, 0, 30)
+ResetButton.Position = UDim2.new(0, 10, 0, 100)
+ResetButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+ResetButton.Text = "Reset Config"
+ResetButton.Font = Enum.Font.SourceSans
+ResetButton.TextSize = 18
+ResetButton.TextColor3 = Color3.new(1,1,1)
+ResetButton.Parent = MainFrame
+
+local UICorner3 = Instance.new("UICorner")
+UICorner3.CornerRadius = UDim.new(0, 8)
+UICorner3.Parent = ResetButton
+
+-- Tornado System
+local ringPartsEnabled = false
+local parts = {}
+
+local function isValidPart(part)
+    return part:IsA("BasePart") 
+        and not part.Anchored 
+        and not part:IsDescendantOf(LocalPlayer.Character)
+end
+
+for _, p in pairs(workspace:GetDescendants()) do
+    if isValidPart(p) then table.insert(parts, p) end
+end
+
+workspace.DescendantAdded:Connect(function(p)
+    if isValidPart(p) then table.insert(parts, p) end
+end)
+
+workspace.DescendantRemoving:Connect(function(p)
+    local i = table.find(parts, p)
+    if i then table.remove(parts, i) end
+end)
+
+RunService.Heartbeat:Connect(function()
+    if not ringPartsEnabled then return end
+    local char = LocalPlayer.Character
+    local root = char and char:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+
+    local center = root.Position
+    for _, part in pairs(parts) do
+        if part.Parent then
+            local pos = part.Position
+            local dist = (Vector3.new(pos.X, center.Y, pos.Z) - center).Magnitude
+            local angle = math.atan2(pos.Z - center.Z, pos.X - center.X)
+            local newAngle = angle + math.rad(config.rotationSpeed)
+            local targetPos = Vector3.new(
+                center.X + math.cos(newAngle) * math.min(config.radius, dist),
+                center.Y + (config.height * math.abs(math.sin((pos.Y - center.Y) / config.height))),
+                center.Z + math.sin(newAngle) * math.min(config.radius, dist)
+            )
+            local dir = (targetPos - part.Position).Unit
+            part.Velocity = dir * config.attractionStrength
+        end
+    end
+end)
+
+-- Toggle Button Function
+ToggleButton.MouseButton1Click:Connect(function()
+    ringPartsEnabled = not ringPartsEnabled
+    ToggleButton.Text = ringPartsEnabled and "ON" or "OFF"
+    ToggleButton.BackgroundColor3 = ringPartsEnabled and Color3.fromRGB(50,200,50) or Color3.fromRGB(200,50,50)
+end)
+
+-- Reset Button Function
+ResetButton.MouseButton1Click:Connect(function()
+    config = { radius = 50, height = 100, rotationSpeed = 10, attractionStrength = 1000 }
+end)
