@@ -1,0 +1,300 @@
+-- // Rayfield UI Loader
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+local Players = game:GetService("Players")
+local TeleportService = game:GetService("TeleportService")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+
+-- // Window
+local Window = Rayfield:CreateWindow({
+   Name = "Custom Hub",
+   Icon = 0,
+   LoadingTitle = "Rayfield Interface Suite",
+   LoadingSubtitle = "by Sirius",
+   Theme = "Default",
+   ToggleUIKeybind = "K",
+})
+
+-------------------------------------------------
+-- // Tabs
+-------------------------------------------------
+local PlayerTab = Window:CreateTab("Player", 4483362458)
+local TeleportTab = Window:CreateTab("Teleport", 4483362458)
+local ServerTab = Window:CreateTab("Server", 4483362458)
+local TrollTab = Window:CreateTab("Troll", 4483362458)
+
+-------------------------------------------------
+-- // Tab Player Features
+-------------------------------------------------
+-- WalkSpeed
+local WalkSpeedSlider = PlayerTab:CreateSlider({
+   Name = "WalkSpeed",
+   Range = {16, 200},
+   Increment = 1,
+   Suffix = "speed",
+   CurrentValue = 16,
+   Callback = function(Value)
+      if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+         LocalPlayer.Character.Humanoid.WalkSpeed = Value
+      end
+   end,
+})
+
+-- JumpPower
+local JumpSlider = PlayerTab:CreateSlider({
+   Name = "JumpPower",
+   Range = {50, 300},
+   Increment = 5,
+   Suffix = "power",
+   CurrentValue = 50,
+   Callback = function(Value)
+      if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+         LocalPlayer.Character.Humanoid.JumpPower = Value
+      end
+   end,
+})
+
+-- Infinite Jump
+local InfiniteJump = false
+PlayerTab:CreateToggle({
+   Name = "Infinite Jump",
+   CurrentValue = false,
+   Callback = function(Value)
+      InfiniteJump = Value
+   end,
+})
+
+game:GetService("UserInputService").JumpRequest:Connect(function()
+   if InfiniteJump and LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+      LocalPlayer.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
+   end
+end)
+
+-- Fly
+local flying = false
+local flySpeed = 50
+local flyConnection
+
+local function Fly()
+   local HumanoidRootPart = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+   if not HumanoidRootPart then return end
+   local BodyVelocity = Instance.new("BodyVelocity", HumanoidRootPart)
+   BodyVelocity.Velocity = Vector3.new(0,0,0)
+   BodyVelocity.MaxForce = Vector3.new(9e9,9e9,9e9)
+
+   flyConnection = RunService.Heartbeat:Connect(function()
+      if flying and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+         local moveDir = LocalPlayer.Character.Humanoid.MoveDirection
+         BodyVelocity.Velocity = moveDir * flySpeed + Vector3.new(0, LocalPlayer.Character.Humanoid.Jump*flySpeed, 0)
+      else
+         BodyVelocity.Velocity = Vector3.new(0,0,0)
+      end
+   end)
+end
+
+PlayerTab:CreateToggle({
+   Name = "Fly Mode",
+   CurrentValue = false,
+   Callback = function(Value)
+      flying = Value
+      if flying then
+         Fly()
+      elseif flyConnection then
+         flyConnection:Disconnect()
+      end
+   end,
+})
+
+PlayerTab:CreateSlider({
+   Name = "Fly Speed",
+   Range = {10, 200},
+   Increment = 5,
+   Suffix = "speed",
+   CurrentValue = flySpeed,
+   Callback = function(Value)
+      flySpeed = Value
+   end,
+})
+
+-- Noclip
+local noclip = false
+PlayerTab:CreateToggle({
+   Name = "Noclip",
+   CurrentValue = false,
+   Callback = function(Value)
+      noclip = Value
+   end,
+})
+
+RunService.Stepped:Connect(function()
+   if noclip and LocalPlayer.Character then
+      for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
+         if part:IsA("BasePart") then
+            part.CanCollide = false
+         end
+      end
+   end
+end)
+
+-- Reset Button
+PlayerTab:CreateButton({
+   Name = "Reset Speed & Jump",
+   Callback = function()
+      if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+         LocalPlayer.Character.Humanoid.WalkSpeed = 16
+         LocalPlayer.Character.Humanoid.JumpPower = 50
+         WalkSpeedSlider:Set(16)
+         JumpSlider:Set(50)
+      end
+   end,
+})
+
+-------------------------------------------------
+-- // Tab Teleport Features
+-------------------------------------------------
+-- Teleport to Player
+local selectedPlayer = nil
+local TpPlayerDropdown = TeleportTab:CreateDropdown({
+   Name = "Select Player",
+   Options = {},
+   CurrentOption = "",
+   Callback = function(option)
+      selectedPlayer = option
+   end,
+})
+
+local function RefreshPlayers()
+   TpPlayerDropdown:Clear()
+   for _, plr in ipairs(Players:GetPlayers()) do
+      if plr ~= LocalPlayer then
+         TpPlayerDropdown:Add(plr.Name)
+      end
+   end
+end
+
+RefreshPlayers()
+Players.PlayerAdded:Connect(RefreshPlayers)
+Players.PlayerRemoving:Connect(RefreshPlayers)
+
+TeleportTab:CreateButton({
+   Name = "Teleport to Player",
+   Callback = function()
+      if selectedPlayer then
+         local target = Players:FindFirstChild(selectedPlayer)
+         if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+            LocalPlayer.Character:MoveTo(target.Character.HumanoidRootPart.Position + Vector3.new(2,0,2))
+         end
+      end
+   end,
+})
+
+-- Teleport ke Pos
+local PosList = {
+   ["Pos 1"] = Vector3.new(5, 12, -404),
+   ["Pos 2"] = Vector3.new(-184, 128, 408),
+   ["Pos 3"] = Vector3.new(-166, 229, 652),
+   ["Pos 4"] = Vector3.new(-38, 406, 616),
+   ["Pos 5"] = Vector3.new(130, 651, 614),
+   ["Pos 6"] = Vector3.new(-247, 666, 735),
+   ["Pos 7"] = Vector3.new(-685, 641, 868),
+   ["Pos 8"] = Vector3.new(-658, 688, 1458),
+   ["Pos 9"] = Vector3.new(-507, 903, 1868),
+   ["Pos 10"] = Vector3.new(59, 950, 2089),
+   ["Pos 11"] = Vector3.new(52, 981, 2450),
+   ["Pos 12"] = Vector3.new(72, 1097, 2456),
+   ["Pos 13"] = Vector3.new(264, 1270, 2038),
+   ["Pos 14"] = Vector3.new(-419, 1302, 2395),
+   ["Pos 15"] = Vector3.new(-773, 1314, 2665),
+   ["Pos 16"] = Vector3.new(-837, 1475, 2626),
+   ["Pos 17"] = Vector3.new(-469, 1465, 2769),
+   ["Pos 18"] = Vector3.new(-468, 1537, 2837),
+   ["Pos 19"] = Vector3.new(-386, 1640, 2795),
+   ["Pos 20"] = Vector3.new(-208, 1666, 2749),
+   ["Pos 21"] = Vector3.new(-233, 1742, 2792),
+   ["Pos 22"] = Vector3.new(-423, 1740, 2799),
+   ["Pos 23"] = Vector3.new(-424, 1713, 3421),
+   ["Pos 24"] = Vector3.new(71, 1719, 3428),
+   ["Pos 25"] = Vector3.new(436, 1720, 3431),
+   ["Pos 26"] = Vector3.new(625, 1799, 3433),
+   ["Puncak"] = Vector3.new(781, 2163, 3921),
+}
+
+local selectedPos = nil
+local PosDropdown = TeleportTab:CreateDropdown({
+   Name = "Select Pos",
+   Options = {},
+   CurrentOption = "",
+   Callback = function(option)
+      selectedPos = PosList[option]
+   end,
+})
+
+for posName, _ in pairs(PosList) do
+   PosDropdown:Add(posName)
+end
+
+TeleportTab:CreateButton({
+   Name = "Teleport ke Pos",
+   Callback = function()
+      if selectedPos then
+         LocalPlayer.Character:MoveTo(selectedPos)
+      end
+   end,
+})
+
+-------------------------------------------------
+-- // Tab Server Features
+-------------------------------------------------
+ServerTab:CreateButton({
+   Name = "Rejoin Server",
+   Callback = function()
+      TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, LocalPlayer)
+   end,
+})
+
+ServerTab:CreateButton({
+   Name = "Server Hop",
+   Callback = function()
+      TeleportService:Teleport(game.PlaceId, LocalPlayer)
+   end,
+})
+
+-------------------------------------------------
+-- // Tab Troll Features (Aura Fling)
+-------------------------------------------------
+local auraEnabled = false
+local auraRadius = 15
+local flingForce = 200
+
+TrollTab:CreateSlider({
+   Name = "Aura Fling Radius",
+   Range = {5, 60},
+   Increment = 1,
+   CurrentValue = auraRadius,
+   Suffix = "studs",
+   Callback = function(v) auraRadius = v end,
+})
+
+TrollTab:CreateToggle({
+   Name = "Aura Fling",
+   CurrentValue = false,
+   Callback = function(v) auraEnabled = v end,
+})
+
+RunService.Heartbeat:Connect(function()
+   if auraEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+      local root = LocalPlayer.Character.HumanoidRootPart
+      for _, plr in ipairs(Players:GetPlayers()) do
+         if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+            local tr = plr.Character.HumanoidRootPart
+            local dist = (tr.Position - root.Position).Magnitude
+            if dist <= auraRadius then
+               local dir = (tr.Position - root.Position).Unit
+               root.Velocity = dir * flingForce * 5
+               root.RotVelocity = Vector3.new(0, 50, 0)
+            end
+         end
+      end
+   end
+end)
