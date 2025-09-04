@@ -32,16 +32,16 @@ local Window = Rayfield:CreateWindow({
    }
 })
 
--- Buat tab baru untuk fungsi pemain
-local MainTab = Window:CreateTab("Main", 0) -- Nama tab dan ikon (opsional)
+-- Menggunakan tab yang sudah Anda berikan
+local Tab = Window:CreateTab("Tab Example", 4483362458)
 
--- Buat bagian baru di dalam tab
-local PlayerSection = MainTab:CreateSection("Player Functions")
+-- Buat bagian baru di dalam tab yang sudah ada
+local PlayerSection = Tab:CreateSection("Player Functions")
 
 -- Tambahkan slider walkspeed
 PlayerSection:CreateSlider({
    Name = "WalkSpeed",
-   Range = {16, 100}, -- Atur rentang nilai (16 adalah walkspeed default)
+   Range = {16, 100}, -- Atur rentang nilai
    Increment = 1, -- Peningkatan per geseran
    Suffix = "Speed", -- Teks di akhir nilai slider
    CurrentValue = 16, -- Nilai awal
