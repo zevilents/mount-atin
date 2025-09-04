@@ -1,0 +1,52 @@
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+local Window = Rayfield:CreateWindow({
+   Name = "Rayfield Example Window",
+   Icon = 0,
+   LoadingTitle = "Rayfield Interface Suite",
+   LoadingSubtitle = "by Sirius",
+   ShowText = "Rayfield",
+   Theme = "Default",
+   ToggleUIKeybind = "K",
+   DisableRayfieldPrompts = false,
+   DisableBuildWarnings = false,
+   ConfigurationSaving = {
+      Enabled = true,
+      FolderName = nil,
+      FileName = "Big Hub"
+   },
+   Discord = {
+      Enabled = false,
+      Invite = "noinvitelink",
+      RememberJoins = true
+   },
+   KeySystem = false,
+   KeySettings = {
+      Title = "Untitled",
+      Subtitle = "Key System",
+      Note = "No method of obtaining the key is provided",
+      FileName = "Key",
+      SaveKey = true,
+      GrabKeyFromSite = false,
+      Key = {"Hello"}
+   }
+})
+
+-- Buat tab baru untuk fungsi pemain
+local MainTab = Window:CreateTab("Main", 0) -- Nama tab dan ikon (opsional)
+
+-- Buat bagian baru di dalam tab
+local PlayerSection = MainTab:CreateSection("Player Functions")
+
+-- Tambahkan slider walkspeed
+PlayerSection:CreateSlider({
+   Name = "WalkSpeed",
+   Range = {16, 100}, -- Atur rentang nilai (16 adalah walkspeed default)
+   Increment = 1, -- Peningkatan per geseran
+   Suffix = "Speed", -- Teks di akhir nilai slider
+   CurrentValue = 16, -- Nilai awal
+   Flag = "WalkSpeed", -- Nama untuk konfigurasi yang disimpan
+   Callback = function(value)
+     game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = value
+   end
+})
