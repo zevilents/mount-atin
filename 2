@@ -38,6 +38,7 @@ local PlayerTab = Window:CreateTab("Player", 4483362458)
 -- Variabel untuk simpan settingan
 local SavedWalkSpeed = 16
 local SavedJumpPower = 50
+local InfiniteJumpEnabled = false
 
 -- 🟢 WalkSpeed Slider
 local WalkSpeedSlider = PlayerTab:CreateSlider({
@@ -93,13 +94,34 @@ local ResetButton = PlayerTab:CreateButton({
    end,
 })
 
+-- 🟢 Infinite Jump Toggle
+local InfiniteJumpToggle = PlayerTab:CreateToggle({
+   Name = "Infinite Jump",
+   CurrentValue = false,
+   Flag = "InfiniteJumpToggle",
+   Callback = function(Value)
+      InfiniteJumpEnabled = Value
+   end,
+})
+
+-- Listener untuk Infinite Jump
+local UserInputService = game:GetService("UserInputService")
+UserInputService.JumpRequest:Connect(function()
+   if InfiniteJumpEnabled then
+      local humanoid = game.Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+      if humanoid then
+         humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+      end
+   end
+end)
+
 -- 🟢 Auto Apply saat respawn
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
 LocalPlayer.CharacterAdded:Connect(function(char)
    char:WaitForChild("Humanoid")
-   task.wait(0.5) -- kasih jeda biar humanoid siap
+   task.wait(0.5)
    local humanoid = char:FindFirstChildOfClass("Humanoid")
    if humanoid then
       humanoid.WalkSpeed = SavedWalkSpeed
