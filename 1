@@ -1,0 +1,110 @@
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+local Window = Rayfield:CreateWindow({
+   Name = "Rayfield Example Window",
+   Icon = 0,
+   LoadingTitle = "Rayfield Interface Suite",
+   LoadingSubtitle = "by Sirius",
+   ShowText = "Rayfield",
+   Theme = "Default",
+   ToggleUIKeybind = "K",
+   DisableRayfieldPrompts = false,
+   DisableBuildWarnings = false,
+   ConfigurationSaving = {
+      Enabled = true,
+      FolderName = nil,
+      FileName = "Big Hub"
+   },
+   Discord = {
+      Enabled = false,
+      Invite = "noinvitelink",
+      RememberJoins = true
+   },
+   KeySystem = false,
+   KeySettings = {
+      Title = "Untitled",
+      Subtitle = "Key System",
+      Note = "No method of obtaining the key is provided",
+      FileName = "Key",
+      SaveKey = true,
+      GrabKeyFromSite = false,
+      Key = {"Hello"}
+   }
+})
+
+-- 🟢 Buat Tab
+local PlayerTab = Window:CreateTab("Player", 4483362458)
+
+-- Variabel untuk simpan settingan
+local SavedWalkSpeed = 16
+local SavedJumpPower = 50
+
+-- 🟢 WalkSpeed Slider
+local WalkSpeedSlider = PlayerTab:CreateSlider({
+   Name = "WalkSpeed",
+   Range = {16, 200},
+   Increment = 1,
+   Suffix = "Speed",
+   CurrentValue = 16,
+   Flag = "WalkSpeedSlider",
+   Callback = function(Value)
+      SavedWalkSpeed = Value
+      local humanoid = game.Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+      if humanoid then
+         humanoid.WalkSpeed = Value
+      end
+   end,
+})
+
+-- 🟢 JumpPower / JumpHeight Slider (Gabungan)
+local JumpPowerSlider = PlayerTab:CreateSlider({
+   Name = "Jump Power / Height",
+   Range = {50, 300},
+   Increment = 5,
+   Suffix = "Jump",
+   CurrentValue = 50,
+   Flag = "JumpPowerSlider",
+   Callback = function(Value)
+      SavedJumpPower = Value
+      local humanoid = game.Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+      if humanoid then
+         humanoid.UseJumpPower = true
+         humanoid.JumpPower = Value
+         humanoid.JumpHeight = Value / 7
+      end
+   end,
+})
+
+-- 🟢 Reset Button
+local ResetButton = PlayerTab:CreateButton({
+   Name = "Reset WalkSpeed & Jump",
+   Callback = function()
+      SavedWalkSpeed = 16
+      SavedJumpPower = 50
+      local humanoid = game.Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+      if humanoid then
+         humanoid.WalkSpeed = 16
+         humanoid.UseJumpPower = true
+         humanoid.JumpPower = 50
+         humanoid.JumpHeight = 7.2
+      end
+      WalkSpeedSlider:Set(16)
+      JumpPowerSlider:Set(50)
+   end,
+})
+
+-- 🟢 Auto Apply saat respawn
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+LocalPlayer.CharacterAdded:Connect(function(char)
+   char:WaitForChild("Humanoid")
+   task.wait(0.5) -- kasih jeda biar humanoid siap
+   local humanoid = char:FindFirstChildOfClass("Humanoid")
+   if humanoid then
+      humanoid.WalkSpeed = SavedWalkSpeed
+      humanoid.UseJumpPower = true
+      humanoid.JumpPower = SavedJumpPower
+      humanoid.JumpHeight = SavedJumpPower / 7
+   end
+end)
