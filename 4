@@ -221,7 +221,7 @@ local NoclipToggle = PlayerTab:CreateToggle({
    end,
 })
 
--- 🟢 Teleport to Player
+-- 🟢 Teleport to Player (fix)
 local function GetPlayerList()
    local names = {}
    for _, plr in pairs(Players:GetPlayers()) do
@@ -229,17 +229,20 @@ local function GetPlayerList()
          table.insert(names, plr.Name)
       end
    end
+   if #names == 0 then
+      table.insert(names, "No Players")
+   end
    return names
 end
 
-local TPDropdown
-TPDropdown = PlayerTab:CreateDropdown({
+local TPDropdown = PlayerTab:CreateDropdown({
    Name = "Teleport to Player",
    Options = GetPlayerList(),
-   CurrentOption = nil,
+   CurrentOption = {""},
    MultipleOptions = false,
    Flag = "TPDropdown",
    Callback = function(Option)
+      if Option == "No Players" then return end
       local target = Players:FindFirstChild(Option)
       local char = LocalPlayer.Character
       if target and target.Character and char then
@@ -252,13 +255,12 @@ TPDropdown = PlayerTab:CreateDropdown({
    end,
 })
 
--- auto update list saat ada player join/leave
-Players.PlayerAdded:Connect(function()
+local function RefreshTPList()
    TPDropdown:Refresh(GetPlayerList(), true)
-end)
-Players.PlayerRemoving:Connect(function()
-   TPDropdown:Refresh(GetPlayerList(), true)
-end)
+end
+
+Players.PlayerAdded:Connect(RefreshTPList)
+Players.PlayerRemoving:Connect(RefreshTPList)
 
 -- 🟢 Auto Apply saat respawn
 LocalPlayer.CharacterAdded:Connect(function(char)
