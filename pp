@@ -1,5 +1,5 @@
 -- ===============================
--- FINAL SCRIPT: TABBED GUI
+-- FINAL SCRIPT: TABBED GUI & FLY
 -- ===============================
 
 local Players = game:GetService("Players")
@@ -33,7 +33,7 @@ local function teleportTo(position)
 end
 
 -- ===============================
--- FUNGSI FLY
+-- FUNGSI FLY BARU & LEBIH FLEKSIBEL
 -- ===============================
 local isFlying = false
 local flySpeed = 50 
@@ -44,14 +44,16 @@ local function startFlying()
 	
 	humanoid.WalkSpeed = 0
 	humanoid.JumpPower = 0
+	humanoid.UseJumpPower = false
 	
 	local bv = Instance.new("BodyVelocity")
-	bv.MaxForce = Vector3.new(0, math.huge, 0)
+	bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
 	bv.P = 20000 
 	bv.Velocity = Vector3.new(0, 0, 0)
 	bv.Parent = character:WaitForChild("HumanoidRootPart")
 
 	isFlying = true
+	humanoid.PlatformStand = true
 end
 
 local function stopFlying()
@@ -62,6 +64,8 @@ local function stopFlying()
 	if humanoid then
 		humanoid.WalkSpeed = 16
 		humanoid.JumpPower = 50
+		humanoid.UseJumpPower = true
+		humanoid.PlatformStand = false
 	end
 	
 	local hrp = character:FindFirstChild("HumanoidRootPart")
@@ -86,18 +90,19 @@ UIS.InputChanged:Connect(function(input, gameProcessed)
 	if not bv then return end
 	
 	local moveVector = Vector3.new(0,0,0)
+	local cameraCFrame = workspace.CurrentCamera.CFrame
 	
 	if UIS:IsKeyDown(Enum.KeyCode.W) then
-		moveVector = moveVector + hrp.CFrame.lookVector * flySpeed
+		moveVector = moveVector + cameraCFrame.lookVector * flySpeed
 	end
 	if UIS:IsKeyDown(Enum.KeyCode.S) then
-		moveVector = moveVector - hrp.CFrame.lookVector * flySpeed
+		moveVector = moveVector - cameraCFrame.lookVector * flySpeed
 	end
 	if UIS:IsKeyDown(Enum.KeyCode.A) then
-		moveVector = moveVector - hrp.CFrame.rightVector * flySpeed
+		moveVector = moveVector - cameraCFrame.rightVector * flySpeed
 	end
 	if UIS:IsKeyDown(Enum.KeyCode.D) then
-		moveVector = moveVector + hrp.CFrame.rightVector * flySpeed
+		moveVector = moveVector + cameraCFrame.rightVector * flySpeed
 	end
 	if UIS:IsKeyDown(Enum.KeyCode.Space) then
 		moveVector = moveVector + Vector3.new(0, flySpeed, 0)
