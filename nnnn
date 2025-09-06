@@ -1,5 +1,5 @@
 -- ===================================
--- FINAL TELEPORT GUI (ICON OPEN BUTTON DRAGABLE)
+-- FINAL TELEPORT GUI (ICON OPEN BUTTON GUNUNG)
 -- ===================================
 
 local Players = game:GetService("Players")
@@ -40,7 +40,7 @@ local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, -40, 0, 30)
 title.Position = UDim2.new(0, 10, 0, 5)
 title.BackgroundTransparency = 1
-title.Text = "🚀 Teleport Menu"
+title.Text = "🏔️ Teleport Menu"
 title.TextColor3 = Color3.fromRGB(200, 230, 255)
 title.Font = Enum.Font.GothamBold
 title.TextSize = 18
@@ -85,7 +85,7 @@ end)
 local openButton = Instance.new("ImageButton")
 openButton.Size = UDim2.new(0, 40, 0, 40)
 openButton.Position = frame.Position
-openButton.Image = "rbxassetid://6034283386" -- icon roket, bisa diganti
+openButton.Image = "rbxassetid://6034283386" -- Ganti dengan ID asset ikon gunung
 openButton.BackgroundColor3 = Color3.fromRGB(50, 150, 255)
 openButton.Visible = false
 openButton.Parent = screenGui
@@ -229,104 +229,6 @@ createButton("🔄 Server Hop", y, function()
 	local function listServers()
 		local url = "https://games.roblox.com/v1/games/"..placeId.."/servers/Public?sortOrder=Asc&limit=100&cursor="..cursor
 		local response = game:HttpGet(url)
-		local data = HttpService:JSONDecode(response)
-		return data
-	end
-
-	local success, data = pcall(listServers)
-	if success and data and data.data then
-		for _, server in ipairs(data.data) do
-			if server.playing < server.maxPlayers and server.id ~= game.JobId then
-				table.insert(servers, server.id)
-			end
-		end
-	end
-
-	if #servers > 0 then
-		local randomServer = servers[math.random(1,#servers)]
-		TeleportService:TeleportToPlaceInstance(placeId, randomServer, player)
-	else
-		warn("Tidak ada server lain ditemukan!")
-	end
-end)
-y = y + 40
-
--- Tombol Rejoin
-createButton("🔁 Rejoin Server", y, function()
-	TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, player)
-end)
-
--- Auto open pertama kali
-openGUI()
-
--- ===================================
--- DRAG SUPPORT FRAME
--- ===================================
-local dragging, dragInput, dragStart, startPos
-local function update(input)
-	local delta = input.Position - dragStart
-	frame.Position = UDim2.new(
-		startPos.X.Scale, startPos.X.Offset + delta.X,
-		startPos.Y.Scale, startPos.Y.Offset + delta.Y
-	)
-	lastFramePos = frame.Position
-end
-
-frame.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-		dragging = true
-		dragStart = input.Position
-		startPos = frame.Position
-		input.Changed:Connect(function()
-			if input.UserInputState == Enum.UserInputState.End then
-				dragging = false
-			end
-		end)
-	end
-end)
-
-frame.InputChanged:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-		dragInput = input
-	end
-end)
-
-UIS.InputChanged:Connect(function(input)
-	if input == dragInput and dragging then
-		update(input)
-	end
-end)
-
--- ===================================
--- DRAG SUPPORT OPEN BUTTON
--- ===================================
-local draggingOpen, dragInputOpen, dragStartOpen, startPosOpen
-openButton.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-		draggingOpen = true
-		dragStartOpen = input.Position
-		startPosOpen = openButton.Position
-		input.Changed:Connect(function()
-			if input.UserInputState == Enum.UserInputState.End then
-				draggingOpen = false
-			end
-		end)
-	end
-end)
-
-openButton.InputChanged:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-		dragInputOpen = input
-	end
-end)
-
-UIS.InputChanged:Connect(function(input)
-	if input == dragInputOpen and draggingOpen then
-		local delta = input.Position - dragStartOpen
-		openButton.Position = UDim2.new(
-			startPosOpen.X.Scale, startPosOpen.X.Offset + delta.X,
-			startPosOpen.Y.Scale, startPosOpen.Y.Offset + delta.Y
-		)
-		lastFramePos = openButton.Position
-	end
-end)
+		local data = HttpService:JSONDecode
+::contentReference[oaicite:3]{index=3}
+ 
