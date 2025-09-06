@@ -1,5 +1,5 @@
 -- ===================================
--- FINAL TELEPORT GUI (ICON OPEN BUTTON)
+-- FINAL TELEPORT GUI (ICON OPEN BUTTON DRAGABLE)
 -- ===================================
 
 local Players = game:GetService("Players")
@@ -85,7 +85,7 @@ end)
 local openButton = Instance.new("ImageButton")
 openButton.Size = UDim2.new(0, 40, 0, 40)
 openButton.Position = frame.Position
-openButton.Image = "rbxassetid://6031094660" -- ganti dengan icon
+openButton.Image = "rbxassetid://6034283386" -- icon roket, bisa diganti
 openButton.BackgroundColor3 = Color3.fromRGB(50, 150, 255)
 openButton.Visible = false
 openButton.Parent = screenGui
@@ -96,7 +96,7 @@ openCorner.Parent = openButton
 
 -- Tooltip untuk openButton
 local tooltip = Instance.new("TextLabel")
-tooltip.Size = UDim2.new(0, 120, 0, 25)
+tooltip.Size = UDim2.new(0, 140, 0, 25)
 tooltip.BackgroundTransparency = 0.5
 tooltip.BackgroundColor3 = Color3.fromRGB(0,0,0)
 tooltip.TextColor3 = Color3.new(1,1,1)
@@ -158,7 +158,7 @@ local function teleportTo(position)
 	hrp.CFrame = CFrame.new(position)
 end
 
--- Fungsi buat tombol (POS & Server Hop/Rejoin)
+-- Fungsi buat tombol POS / Server Hop / Rejoin
 local function createButton(text, yPos, callback)
 	local button = Instance.new("TextButton")
 	button.Size = UDim2.new(1, -10, 0, 35)
@@ -260,10 +260,9 @@ end)
 openGUI()
 
 -- ===================================
--- DRAG SUPPORT
+-- DRAG SUPPORT FRAME
 -- ===================================
 local dragging, dragInput, dragStart, startPos
-
 local function update(input)
 	local delta = input.Position - dragStart
 	frame.Position = UDim2.new(
@@ -295,5 +294,39 @@ end)
 UIS.InputChanged:Connect(function(input)
 	if input == dragInput and dragging then
 		update(input)
+	end
+end)
+
+-- ===================================
+-- DRAG SUPPORT OPEN BUTTON
+-- ===================================
+local draggingOpen, dragInputOpen, dragStartOpen, startPosOpen
+openButton.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		draggingOpen = true
+		dragStartOpen = input.Position
+		startPosOpen = openButton.Position
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				draggingOpen = false
+			end
+		end)
+	end
+end)
+
+openButton.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+		dragInputOpen = input
+	end
+end)
+
+UIS.InputChanged:Connect(function(input)
+	if input == dragInputOpen and draggingOpen then
+		local delta = input.Position - dragStartOpen
+		openButton.Position = UDim2.new(
+			startPosOpen.X.Scale, startPosOpen.X.Offset + delta.X,
+			startPosOpen.Y.Scale, startPosOpen.Y.Offset + delta.Y
+		)
+		lastFramePos = openButton.Position
 	end
 end)
