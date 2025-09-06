@@ -38,6 +38,8 @@ end
 local isFlying = false
 local flySpeed = 50 
 
+local flyButton -- Deklarasi variabel tombol di sini
+
 local function startFlying()
 	local character = player.Character or player.CharacterAdded:Wait()
 	local humanoid = character:WaitForChild("Humanoid")
@@ -54,6 +56,12 @@ local function startFlying()
 
 	isFlying = true
 	humanoid.PlatformStand = true
+	
+	-- ANGGAP INI ANIMASI
+	if flyButton then
+		flyButton.BackgroundColor3 = Color3.fromRGB(255, 90, 90)
+		flyButton.Text = "✈️ Flying..."
+	end
 end
 
 local function stopFlying()
@@ -77,6 +85,12 @@ local function stopFlying()
 	end
 	
 	isFlying = false
+	
+	-- ANGGAP INI ANIMASI
+	if flyButton then
+		flyButton.BackgroundColor3 = Color3.fromRGB(70, 130, 255)
+		flyButton.Text = "✈️ Toggle Fly"
+	end
 end
 
 UIS.InputChanged:Connect(function(input, gameProcessed)
@@ -219,6 +233,8 @@ local function createButton(parent, text, callback)
 	if callback then
 		button.MouseButton1Click:Connect(callback)
 	end
+	
+	return button
 end
 
 -- Fungsi untuk mengelola tab
@@ -340,7 +356,7 @@ serverLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
 end)
 
 -- Tab Player
-createButton(playerTab, "✈️ Toggle Fly", function()
+flyButton = createButton(playerTab, "✈️ Toggle Fly", function()
 	if isFlying then
 		stopFlying()
 	else
@@ -536,3 +552,6 @@ UIS.InputChanged:Connect(function(input)
 		lastFramePos = openButton.Position
 	end
 end)
+
+---
+I've included a video on how to [make an on/off button in Roblox](https://www.youtube.com/watch?v=1diAdzEl24o) to show how you can set up a similar toggle mechanism for your GUI.
