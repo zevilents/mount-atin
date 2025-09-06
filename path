@@ -1,0 +1,134 @@
+-- ====================================
+-- PATH RECORDER GUI
+-- ====================================
+local Players = game:GetService("Players")
+local HttpService = game:GetService("HttpService")
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+local hrp = character:WaitForChild("HumanoidRootPart")
+
+local path = {}
+local recording = false
+local playback = false
+
+-- Buat GUI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "PathRecorder"
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 220, 0, 230)
+frame.Position = UDim2.new(0, 50, 0, 100)
+frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+frame.Parent = screenGui
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 12)
+corner.Parent = frame
+
+local layout = Instance.new("UIListLayout")
+layout.Padding = UDim.new(0, 5)
+layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+layout.VerticalAlignment = Enum.VerticalAlignment.Top
+layout.Parent = frame
+
+-- Fungsi buat tombol
+local function createButton(text, callback)
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.new(0, 200, 0, 35)
+    button.Text = text
+    button.BackgroundColor3 = Color3.fromRGB(70, 130, 255)
+    button.TextColor3 = Color3.new(1,1,1)
+    button.Font = Enum.Font.SourceSansBold
+    button.TextSize = 18
+    button.Parent = frame
+
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0, 8)
+    c.Parent = button
+
+    button.MouseButton1Click:Connect(callback)
+end
+
+-- =======================
+-- Fungsi Record
+-- =======================
+local function startRecord()
+    path = {}
+    recording = true
+    print("Mulai record path...")
+    task.spawn(function()
+        while recording do
+            table.insert(path, hrp.Position)
+            task.wait(0.3) -- setiap 0.3 detik ambil posisi
+        end
+    end)
+end
+
+local function stopRecord()
+    recording = false
+    print("Stop record. Total titik:", #path)
+end
+
+-- =======================
+-- Fungsi Play
+-- =======================
+local function playPath()
+    if #path == 0 then
+        warn("Belum ada path!")
+        return
+    end
+    playback = true
+    print("Mulai jalan sesuai path...")
+    for _,pos in ipairs(path) do
+        if not playback then break end
+        humanoid:MoveTo(pos)
+        humanoid.MoveToFinished:Wait()
+    end
+    print("Selesai jalan path")
+end
+
+local function stopPlay()
+    playback = false
+    print("Stop playback")
+end
+
+-- =======================
+-- Fungsi Save / Load
+-- =======================
+local function savePath()
+    if not writefile then
+        warn("Exploit kamu tidak support writefile!")
+        return
+    end
+    local data = {}
+    for _,pos in ipairs(path) do
+        table.insert(data, {X=pos.X, Y=pos.Y, Z=pos.Z})
+    end
+    writefile("path.json", HttpService:JSONEncode(data))
+    print("Path berhasil disimpan ke path.json")
+end
+
+local function loadPath()
+    if not readfile or not isfile or not isfile("path.json") then
+        warn("File path.json tidak ditemukan!")
+        return
+    end
+    local data = HttpService:JSONDecode(readfile("path.json"))
+    path = {}
+    for _,pos in ipairs(data) do
+        table.insert(path, Vector3.new(pos.X, pos.Y, pos.Z))
+    end
+    print("Path berhasil dimuat! Total titik:", #path)
+end
+
+-- =======================
+-- Buat tombol GUI
+-- =======================
+createButton("▶ Start Record", startRecord)
+createButton("■ Stop Record", stopRecord)
+createButton("🚶 Play Path", playPath)
+createButton("⏹ Stop Play", stopPlay)
+createButton("💾 Save Path", savePath)
+createButton("📂 Load Path", loadPath)
