@@ -4,53 +4,34 @@ local PathfindingService = game:GetService("PathfindingService")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
--- Hapus GUI lama kalau ada
 if playerGui:FindFirstChild("PathGUI") then
 	playerGui.PathGUI:Destroy()
 end
 
--- Buat GUI
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "PathGUI"
-screenGui.ResetOnSpawn = false
 screenGui.Parent = playerGui
 
-local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 220, 0, 100)
-frame.Position = UDim2.new(0.5, -110, 0.2, 0)
-frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-frame.BorderSizePixel = 0
-frame.Parent = screenGui
-
-local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 12)
-corner.Parent = frame
-
 local button = Instance.new("TextButton")
-button.Size = UDim2.new(1, -20, 0, 40)
-button.Position = UDim2.new(0, 10, 0, 30)
+button.Size = UDim2.new(0, 220, 0, 50)
+button.Position = UDim2.new(0.5, -110, 0.2, 0)
 button.Text = "Jalan: POS 2 → POS 3"
 button.BackgroundColor3 = Color3.fromRGB(70, 130, 255)
 button.TextColor3 = Color3.new(1, 1, 1)
 button.Font = Enum.Font.SourceSansBold
-button.TextSize = 16
-button.Parent = frame
-
-local btnCorner = Instance.new("UICorner")
-btnCorner.CornerRadius = UDim.new(0, 8)
-btnCorner.Parent = button
+button.TextSize = 18
+button.Parent = screenGui
 
 -- Lokasi
 local pos2 = Vector3.new(-184, 128, 408)
 local pos3 = Vector3.new(-166, 229, 652)
 
--- Fungsi AI jalan
 local function goTo(position)
 	local char = player.Character or player.CharacterAdded:Wait()
 	local humanoid = char:WaitForChild("Humanoid")
 	local hrp = char:WaitForChild("HumanoidRootPart")
 
-	-- Buat path
+	-- Hitung path
 	local path = PathfindingService:CreatePath({
 		AgentRadius = 2,
 		AgentHeight = 5,
@@ -58,35 +39,33 @@ local function goTo(position)
 		AgentJumpHeight = 10,
 		AgentMaxSlope = 45,
 	})
-
 	path:ComputeAsync(hrp.Position, position)
 
 	if path.Status == Enum.PathStatus.Complete then
+		print("✅ Path ditemukan, jumlah waypoint:", #path:GetWaypoints())
 		for _, waypoint in ipairs(path:GetWaypoints()) do
+			print("➡️ Menuju waypoint:", waypoint.Position)
 			humanoid:MoveTo(waypoint.Position)
 			humanoid.MoveToFinished:Wait()
 
-			-- Kalau waypoint butuh lompat
 			if waypoint.Action == Enum.PathWaypointAction.Jump then
+				print("🔼 Lompat di waypoint")
 				humanoid.Jump = true
 			end
 		end
 	else
-		warn("❌ Path gagal ke:", position)
+		warn("❌ Path gagal dihitung! Dari:", hrp.Position, "→", position)
 	end
 end
 
--- Klik tombol
 button.MouseButton1Click:Connect(function()
 	local char = player.Character or player.CharacterAdded:Wait()
 	local hrp = char:WaitForChild("HumanoidRootPart")
 
-	-- Teleport ke POS 2 dulu
+	-- Teleport ke POS 2
 	hrp.CFrame = CFrame.new(pos2)
-
-	-- Tunggu sedikit biar posisi fix
 	task.wait(1.5)
 
-	-- Hitung path dan jalan otomatis ke POS 3
+	-- Coba jalan ke POS 3
 	goTo(pos3)
 end)
