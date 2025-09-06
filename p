@@ -1,0 +1,533 @@
+-- ===============================
+-- FINAL SCRIPT: TABBED GUI
+-- ===============================
+
+local Players = game:GetService("Players")
+local TeleportService = game:GetService("TeleportService")
+local HttpService = game:GetService("HttpService")
+local TweenService = game:GetService("TweenService")
+local UIS = game:GetService("UserInputService")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- ===============================
+-- HAPUS GUI LAMA
+-- ===============================
+if playerGui:FindFirstChild("TeleportGUI") then
+	playerGui.TeleportGUI:Destroy()
+end
+
+-- ===============================
+-- UTILITIES
+-- ===============================
+local tweenIn = TweenInfo.new(0.4, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+local tweenOut = TweenInfo.new(0.4, Enum.EasingStyle.Quint, Enum.EasingDirection.In)
+
+local lastFramePos = UDim2.new(0, 20, 0.3, 0)
+
+local function teleportTo(position)
+	local character = player.Character or player.CharacterAdded:Wait()
+	local hrp = character:WaitForChild("HumanoidRootPart")
+	hrp.CFrame = CFrame.new(position)
+end
+
+-- ===============================
+-- FUNGSI FLY
+-- ===============================
+local isFlying = false
+local flySpeed = 50 
+
+local function startFlying()
+	local character = player.Character or player.CharacterAdded:Wait()
+	local humanoid = character:WaitForChild("Humanoid")
+	
+	humanoid.WalkSpeed = 0
+	humanoid.JumpPower = 0
+	
+	local bv = Instance.new("BodyVelocity")
+	bv.MaxForce = Vector3.new(0, math.huge, 0)
+	bv.P = 20000 
+	bv.Velocity = Vector3.new(0, 0, 0)
+	bv.Parent = character:WaitForChild("HumanoidRootPart")
+
+	isFlying = true
+end
+
+local function stopFlying()
+	local character = player.Character
+	if not character then return end
+	
+	local humanoid = character:FindFirstChild("Humanoid")
+	if humanoid then
+		humanoid.WalkSpeed = 16
+		humanoid.JumpPower = 50
+	end
+	
+	local hrp = character:FindFirstChild("HumanoidRootPart")
+	if hrp then
+		local bv = hrp:FindFirstChildOfClass("BodyVelocity")
+		if bv then
+			bv:Destroy()
+		end
+	end
+	
+	isFlying = false
+end
+
+UIS.InputChanged:Connect(function(input, gameProcessed)
+	if gameProcessed or not isFlying then return end
+	
+	local character = player.Character
+	if not character then return end
+	
+	local hrp = character:WaitForChild("HumanoidRootPart")
+	local bv = hrp:FindFirstChildOfClass("BodyVelocity")
+	if not bv then return end
+	
+	local moveVector = Vector3.new(0,0,0)
+	
+	if UIS:IsKeyDown(Enum.KeyCode.W) then
+		moveVector = moveVector + hrp.CFrame.lookVector * flySpeed
+	end
+	if UIS:IsKeyDown(Enum.KeyCode.S) then
+		moveVector = moveVector - hrp.CFrame.lookVector * flySpeed
+	end
+	if UIS:IsKeyDown(Enum.KeyCode.A) then
+		moveVector = moveVector - hrp.CFrame.rightVector * flySpeed
+	end
+	if UIS:IsKeyDown(Enum.KeyCode.D) then
+		moveVector = moveVector + hrp.CFrame.rightVector * flySpeed
+	end
+	if UIS:IsKeyDown(Enum.KeyCode.Space) then
+		moveVector = moveVector + Vector3.new(0, flySpeed, 0)
+	end
+	if UIS:IsKeyDown(Enum.KeyCode.C) then
+		moveVector = moveVector - Vector3.new(0, flySpeed, 0)
+	end
+	
+	bv.Velocity = moveVector
+end)
+
+-- ===============================
+-- TABBED GUI SETUP
+-- ===============================
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "TeleportGUI"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = playerGui
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 200, 0, 320)
+frame.Position = lastFramePos
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+frame.BackgroundTransparency = 0.1
+frame.BorderSizePixel = 0
+frame.Visible = false
+frame.Parent = screenGui
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 12)
+corner.Parent = frame
+
+-- Tab Buttons Frame
+local tabButtonsFrame = Instance.new("Frame")
+tabButtonsFrame.Size = UDim2.new(1, 0, 0, 35)
+tabButtonsFrame.Position = UDim2.new(0, 0, 0, 0)
+tabButtonsFrame.BackgroundTransparency = 1
+tabButtonsFrame.Parent = frame
+
+local tabLayout = Instance.new("UIListLayout")
+tabLayout.Padding = UDim.new(0, 2)
+tabLayout.FillDirection = Enum.FillDirection.Horizontal
+tabLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+tabLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+tabLayout.Parent = tabButtonsFrame
+
+local selectedColor = Color3.fromRGB(50, 150, 255)
+local unselectedColor = Color3.fromRGB(50, 50, 70)
+
+local tabs = {}
+local currentTab = "Teleport"
+
+-- Content Frame (untuk menampilkan konten tab)
+local contentFrame = Instance.new("Frame")
+contentFrame.Size = UDim2.new(1, -10, 1, -45)
+contentFrame.Position = UDim2.new(0, 5, 0, 40)
+contentFrame.BackgroundTransparency = 1
+contentFrame.BorderSizePixel = 0
+contentFrame.Parent = frame
+
+local teleportTab = Instance.new("ScrollingFrame")
+teleportTab.Name = "Teleport"
+teleportTab.Size = UDim2.new(1, 0, 1, 0)
+teleportTab.BackgroundTransparency = 1
+teleportTab.ScrollBarThickness = 6
+teleportTab.Parent = contentFrame
+
+local teleportLayout = Instance.new("UIListLayout")
+teleportLayout.Padding = UDim.new(0, 5)
+teleportLayout.SortOrder = Enum.SortOrder.LayoutOrder
+teleportLayout.Parent = teleportTab
+
+local serverTab = Instance.new("ScrollingFrame")
+serverTab.Name = "Server"
+serverTab.Size = UDim2.new(1, 0, 1, 0)
+serverTab.BackgroundTransparency = 1
+serverTab.ScrollBarThickness = 6
+serverTab.Visible = false
+serverTab.Parent = contentFrame
+
+local serverLayout = Instance.new("UIListLayout")
+serverLayout.Padding = UDim.new(0, 5)
+serverLayout.SortOrder = Enum.SortOrder.LayoutOrder
+serverLayout.Parent = serverTab
+
+local playerTab = Instance.new("ScrollingFrame")
+playerTab.Name = "Player"
+playerTab.Size = UDim2.new(1, 0, 1, 0)
+playerTab.BackgroundTransparency = 1
+playerTab.ScrollBarThickness = 6
+playerTab.Visible = false
+playerTab.Parent = contentFrame
+
+local playerLayout = Instance.new("UIListLayout")
+playerLayout.Padding = UDim.new(0, 5)
+playerLayout.SortOrder = Enum.SortOrder.LayoutOrder
+playerLayout.Parent = playerTab
+
+-- Fungsi untuk membuat tombol
+local function createButton(parent, text, callback)
+	local button = Instance.new("TextButton")
+	button.Size = UDim2.new(1, -10, 0, 35)
+	button.Text = text
+	button.BackgroundColor3 = Color3.fromRGB(70, 130, 255)
+	button.TextColor3 = Color3.new(1,1,1)
+	button.Font = Enum.Font.GothamBold
+	button.TextSize = 16
+	button.Parent = parent
+
+	local btnCorner = Instance.new("UICorner")
+	btnCorner.CornerRadius = UDim.new(0, 8)
+	btnCorner.Parent = button
+
+	if callback then
+		button.MouseButton1Click:Connect(callback)
+	end
+end
+
+-- Fungsi untuk mengelola tab
+local function createTabButton(name)
+	local button = Instance.new("TextButton")
+	button.Size = UDim2.new(0, 60, 1, -5)
+	button.Text = name
+	button.BackgroundColor3 = unselectedColor
+	button.TextColor3 = Color3.new(1,1,1)
+	button.Font = Enum.Font.GothamBold
+	button.TextSize = 14
+	button.Parent = tabButtonsFrame
+
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 8)
+	corner.Parent = button
+
+	button.MouseButton1Click:Connect(function()
+		for _, tab in ipairs(contentFrame:GetChildren()) do
+			tab.Visible = false
+		end
+		contentFrame:FindFirstChild(name).Visible = true
+		currentTab = name
+		
+		for _, tabBtn in pairs(tabs) do
+			tabBtn.BackgroundColor3 = unselectedColor
+		end
+		button.BackgroundColor3 = selectedColor
+	end)
+
+	return button
+end
+
+tabs.Teleport = createTabButton("Teleport")
+tabs.Server = createTabButton("Server")
+tabs.Player = createTabButton("Player")
+
+tabs.Teleport.BackgroundColor3 = selectedColor
+
+-- ===============================
+-- ISI KONTEN TAB
+-- ===============================
+
+-- Tab Teleport
+local locations = {
+	{"POS 1", Vector3.new(5, 12, -404)},
+	{"POS 2", Vector3.new(-184, 128, 408)},
+	{"POS 3", Vector3.new(-166, 229, 652)},
+	{"POS 4", Vector3.new(-38, 406, 616)},
+	{"POS 5", Vector3.new(130, 651, 614)},
+	{"POS 6", Vector3.new(-247, 666, 735)},
+	{"POS 7", Vector3.new(-685, 641, 868)},
+	{"POS 8", Vector3.new(-658, 688, 1458)},
+	{"POS 9", Vector3.new(-507, 903, 1868)},
+	{"POS 10", Vector3.new(59, 950, 2089)},
+	{"POS 11", Vector3.new(52, 981, 2450)},
+	{"POS 12", Vector3.new(72, 1097, 2456)},
+	{"POS 13", Vector3.new(264, 1270, 2038)},
+	{"POS 14", Vector3.new(-419, 1302, 2395)},
+	{"POS 15", Vector3.new(-773, 1314, 2665)},
+	{"POS 16", Vector3.new(-837, 1475, 2626)},
+	{"POS 17", Vector3.new(-469, 1465, 2769)},
+	{"POS 18", Vector3.new(-468, 1537, 2837)},
+	{"POS 19", Vector3.new(-386, 1640, 2795)},
+	{"POS 20", Vector3.new(-208, 1666, 2749)},
+	{"POS 21", Vector3.new(-233, 1742, 2792)},
+	{"POS 22", Vector3.new(-423, 1740, 2799)},
+	{"POS 23", Vector3.new(-424, 1713, 3421)},
+	{"POS 24", Vector3.new(71, 1719, 3428)},
+	{"POS 25", Vector3.new(436, 1720, 3431)},
+	{"POS 26", Vector3.new(625, 1799, 3433)},
+	{"PUNCAK", Vector3.new(781, 2163, 3921)},
+}
+
+for _, data in ipairs(locations) do
+	local name, pos = data[1], data[2]
+	createButton(teleportTab, name, function()
+		teleportTo(pos)
+	end)
+end
+
+teleportLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+	teleportTab.CanvasSize = UDim2.new(0,0,0,teleportLayout.AbsoluteContentSize.Y + 10)
+end)
+
+-- Tab Server
+createButton(serverTab, "🔄 Server Hop", function()
+	local placeId = game.PlaceId
+	local servers = {}
+	local cursor = ""
+	local function listServers()
+		local url = "https://games.roblox.com/v1/games/"..placeId.."/servers/Public?sortOrder=Asc&limit=100&cursor="..cursor
+		local response = game:HttpGet(url)
+		local data = HttpService:JSONDecode(response)
+		return data
+	end
+	local success, data = pcall(listServers)
+	if success and data and data.data then
+		for _, server in ipairs(data.data) do
+			if server.playing < server.maxPlayers and server.id ~= game.JobId then
+				table.insert(servers, server.id)
+			end
+		end
+	end
+	if #servers > 0 then
+		local randomServer = servers[math.random(1,#servers)]
+		TeleportService:TeleportToPlaceInstance(placeId, randomServer, player)
+	else
+		warn("Tidak ada server lain ditemukan!")
+	end
+end)
+
+createButton(serverTab, "🔁 Rejoin Server", function()
+	TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, player)
+end)
+
+serverLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+	serverTab.CanvasSize = UDim2.new(0,0,0,serverLayout.AbsoluteContentSize.Y + 10)
+end)
+
+-- Tab Player
+createButton(playerTab, "✈️ Toggle Fly", function()
+	if isFlying then
+		stopFlying()
+	else
+		startFlying()
+	end
+end)
+
+playerLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+	playerTab.CanvasSize = UDim2.new(0,0,0,playerLayout.AbsoluteContentSize.Y + 10)
+end)
+
+-- ===============================================
+-- WELCOME SCREEN
+-- ===============================================
+local welcomeGui = Instance.new("ScreenGui")
+welcomeGui.Name = "WelcomeScreen"
+welcomeGui.ResetOnSpawn = false
+welcomeGui.Parent = playerGui
+
+local bg = Instance.new("Frame")
+bg.Size = UDim2.new(1,0,1,0)
+bg.BackgroundColor3 = Color3.fromRGB(20,20,30)
+bg.Parent = welcomeGui
+
+local welcomeTitle = Instance.new("TextLabel")
+welcomeTitle.Size = UDim2.new(1,0,0,100)
+welcomeTitle.Position = UDim2.new(0,0,0.2,0)
+welcomeTitle.BackgroundTransparency = 1
+welcomeTitle.Text = "🚀 Welcome to the Game!"
+welcomeTitle.TextColor3 = Color3.fromRGB(200,230,255)
+welcomeTitle.Font = Enum.Font.GothamBold
+welcomeTitle.TextSize = 36
+welcomeTitle.TextTransparency = 1
+welcomeTitle.Parent = bg
+
+local subtitle = Instance.new("TextLabel")
+subtitle.Size = UDim2.new(1,0,0,50)
+subtitle.Position = UDim2.new(0,0,0.4,0)
+subtitle.BackgroundTransparency = 1
+subtitle.Text = "Prepare for adventure!"
+subtitle.TextColor3 = Color3.fromRGB(180,180,200)
+subtitle.Font = Enum.Font.Gotham
+subtitle.TextSize = 24
+subtitle.TextTransparency = 1
+subtitle.Parent = bg
+
+local continueBtn = Instance.new("TextButton")
+continueBtn.Size = UDim2.new(0,200,0,50)
+continueBtn.Position = UDim2.new(0.5,-100,0.7,0)
+continueBtn.BackgroundColor3 = Color3.fromRGB(70,130,255)
+continueBtn.Text = "Continue"
+continueBtn.TextColor3 = Color3.new(1,1,1)
+continueBtn.Font = Enum.Font.GothamBold
+continueBtn.TextSize = 22
+continueBtn.TextTransparency = 1
+continueBtn.Parent = bg
+
+local btnCorner = Instance.new("UICorner")
+btnCorner.CornerRadius = UDim.new(0,12)
+btnCorner.Parent = continueBtn
+
+for i = 0,1,0.02 do
+	welcomeTitle.TextTransparency = 1 - i
+	subtitle.TextTransparency = 1 - i
+	continueBtn.TextTransparency = 1 - i
+	wait(0.02)
+end
+
+local function closeWelcome()
+	for i = 1,10 do
+		bg.BackgroundTransparency = bg.BackgroundTransparency + 0.1
+		welcomeTitle.TextTransparency = welcomeTitle.TextTransparency + 0.1
+		subtitle.TextTransparency = subtitle.TextTransparency + 0.1
+		continueBtn.TextTransparency = continueBtn.TextTransparency + 0.1
+		wait(0.03)
+	end
+	welcomeGui:Destroy()
+	frame.Visible = true
+end
+
+continueBtn.MouseButton1Click:Connect(closeWelcome)
+
+-- ===============================
+-- MINIMIZE DAN DRAG
+-- ===============================
+local openButton = Instance.new("TextButton")
+openButton.Size = UDim2.new(0, 40, 0, 40)
+openButton.Position = lastFramePos
+openButton.BackgroundColor3 = Color3.fromRGB(50, 150, 255)
+openButton.Text = "☰"
+openButton.TextColor3 = Color3.new(1,1,1)
+openButton.Font = Enum.Font.GothamBold
+openButton.TextSize = 20
+openButton.Visible = false
+openButton.Parent = screenGui
+
+local openCorner = Instance.new("UICorner")
+openCorner.CornerRadius = UDim.new(0, 8)
+openCorner.Parent = openButton
+
+local function openGUI()
+	frame.Visible = true
+	openButton.Visible = false
+	TweenService:Create(frame, tweenIn, {Position = lastFramePos}):Play()
+end
+
+local function minimizeGUI()
+	lastFramePos = frame.Position
+	TweenService:Create(frame, tweenOut, {Position = UDim2.new(frame.Position.X.Scale, frame.Position.X.Offset - 220, frame.Position.Y.Scale, frame.Position.Y.Offset)}):Play()
+	openButton.Position = lastFramePos
+	openButton.Visible = true
+	frame.Visible = false
+end
+
+openButton.MouseButton1Click:Connect(openGUI)
+
+-- Keybind G
+UIS.InputBegan:Connect(function(input, gameProcessed)
+	if gameProcessed then return end
+	if input.KeyCode == Enum.KeyCode.G then
+		if frame.Visible then
+			minimizeGUI()
+		else
+			openGUI()
+		end
+	end
+end)
+
+-- Drag support frame
+local dragging, dragInput, dragStart, startPos
+local function update(input)
+	local delta = input.Position - dragStart
+	frame.Position = UDim2.new(
+		startPos.X.Scale, startPos.X.Offset + delta.X,
+		startPos.Y.Scale, startPos.Y.Offset + delta.Y
+	)
+	lastFramePos = frame.Position
+end
+
+frame.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = true
+		dragStart = input.Position
+		startPos = frame.Position
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
+end)
+
+frame.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+		dragInput = input
+	end
+end)
+
+UIS.InputChanged:Connect(function(input)
+	if input == dragInput and dragging then
+		update(input)
+	end
+end)
+
+-- Drag support open button
+local draggingOpen, dragInputOpen, dragStartOpen, startPosOpen
+openButton.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		draggingOpen = true
+		dragStartOpen = input.Position
+		startPosOpen = openButton.Position
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				draggingOpen = false
+			end
+		end)
+	end
+end)
+
+openButton.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+		dragInputOpen = input
+	end
+end)
+
+UIS.InputChanged:Connect(function(input)
+	if input == dragInputOpen and draggingOpen then
+		local delta = input.Position - dragStartOpen
+		openButton.Position = UDim2.new(
+			startPosOpen.X.Scale, startPosOpen.X.Offset + delta.X,
+			startPosOpen.Y.Scale, startPosOpen.Y.Offset + delta.Y
+		)
+		lastFramePos = openButton.Position
+	end
+end)
