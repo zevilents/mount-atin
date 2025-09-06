@@ -1,5 +1,5 @@
 -- ===================================
--- COMPACT TELEPORT GUI (FINAL FIX)
+-- COMPACT TELEPORT GUI (FINAL SCROLL FIX)
 -- ===================================
 
 local Players = game:GetService("Players")
@@ -66,15 +66,20 @@ scroll.Size = UDim2.new(1, -10, 1, -45)
 scroll.Position = UDim2.new(0, 5, 0, 40)
 scroll.BackgroundTransparency = 1
 scroll.BorderSizePixel = 0
-scroll.ScrollBarThickness = 4
-scroll.CanvasSize = UDim2.new()
+scroll.ScrollBarThickness = 6
+scroll.CanvasSize = UDim2.new(0,0,0,0)
 scroll.Parent = frame
 
--- Layout otomatis (biar tombol tidak numpuk)
+-- Layout otomatis
 local layout = Instance.new("UIListLayout")
 layout.Parent = scroll
 layout.Padding = UDim.new(0, 5)
 layout.SortOrder = Enum.SortOrder.LayoutOrder
+
+-- Auto-update CanvasSize sesuai jumlah tombol
+layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+	scroll.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 10)
+end)
 
 -- Floating open button
 local openButton = Instance.new("TextButton")
