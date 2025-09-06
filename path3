@@ -1,0 +1,122 @@
+-- FINAL INPUT RECORDER GUI (Natural Replay)
+-- Rekam input keyboard (WASD + Space), simpan, dan replay
+-- GUI dengan tombol Record / Stop / Play
+
+local UIS = game:GetService("UserInputService")
+local VIM = game:GetService("VirtualInputManager")
+local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- GUI Setup
+if playerGui:FindFirstChild("ObbyRecorder") then
+	playerGui.ObbyRecorder:Destroy()
+end
+
+local screen = Instance.new("ScreenGui")
+screen.Name = "ObbyRecorder"
+screen.Parent = playerGui
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 200, 0, 150)
+frame.Position = UDim2.new(0, 20, 0, 200)
+frame.BackgroundColor3 = Color3.fromRGB(40,40,40)
+frame.Parent = screen
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0,10)
+corner.Parent = frame
+
+local function createBtn(txt, order, callback)
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(0, 180, 0, 40)
+	btn.Position = UDim2.new(0, 10, 0, 10 + (order * 45))
+	btn.Text = txt
+	btn.BackgroundColor3 = Color3.fromRGB(70,130,255)
+	btn.TextColor3 = Color3.new(1,1,1)
+	btn.Font = Enum.Font.SourceSansBold
+	btn.TextSize = 18
+	btn.Parent = frame
+	btn.MouseButton1Click:Connect(callback)
+
+	local bcorner = Instance.new("UICorner")
+	bcorner.CornerRadius = UDim.new(0,8)
+	bcorner.Parent = btn
+end
+
+-- Recorder
+local recording = false
+local playing = false
+local recordData = {}
+local startTime = 0
+local fileName = "obby_record.json"
+
+local function startRecording()
+	if playing then return end
+	recordData = {}
+	startTime = tick()
+	recording = true
+	warn("🎥 Recording started...")
+end
+
+local function stopRecording()
+	if not recording then return end
+	recording = false
+	local json = HttpService:JSONEncode(recordData)
+	writefile(fileName, json)
+	warn("🛑 Recording stopped. Saved to " .. fileName)
+end
+
+local function playRecording()
+	if playing or recording then return end
+	if not isfile(fileName) then
+		warn("⚠️ No saved record found!")
+		return
+	end
+
+	local data = HttpService:JSONDecode(readfile(fileName))
+	playing = true
+	warn("▶️ Playback started...")
+
+	spawn(function()
+		for _, input in ipairs(data) do
+			task.wait(input.delay)
+
+			VIM:SendKeyEvent(input.began, input.key, false, game)
+		end
+		playing = false
+		warn("✅ Playback finished.")
+	end)
+end
+
+-- Rekam input
+UIS.InputBegan:Connect(function(input, processed)
+	if recording and not processed and input.UserInputType == Enum.UserInputType.Keyboard then
+		local delay = tick() - startTime
+		table.insert(recordData, {
+			key = input.KeyCode,
+			began = true,
+			delay = delay
+		})
+		startTime = tick()
+	end
+end)
+
+UIS.InputEnded:Connect(function(input, processed)
+	if recording and not processed and input.UserInputType == Enum.UserInputType.Keyboard then
+		local delay = tick() - startTime
+		table.insert(recordData, {
+			key = input.KeyCode,
+			began = false,
+			delay = delay
+		})
+		startTime = tick()
+	end
+end)
+
+-- Tombol GUI
+createBtn("🎥 Start Record", 0, startRecording)
+createBtn("🛑 Stop Record", 1, stopRecording)
+createBtn("▶️ Play Replay", 2, playRecording)
