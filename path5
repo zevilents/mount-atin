@@ -1,16 +1,21 @@
--- FINAL INPUT RECORDER GUI (Fix GUI Tidak Muncul)
--- Rekam input keyboard (WASD + Space), simpan, dan replay
--- GUI dengan tombol Record / Stop / Play
+-- INPUT RECORDER GUI (Guaranteed Visible)
+-- Rekam input keyboard (WASD + Space), simpan JSON, replay natural
 
 local UIS = game:GetService("UserInputService")
 local VIM = game:GetService("VirtualInputManager")
 local HttpService = game:GetService("HttpService")
 
--- GUI Parent (CoreGui lebih aman, kalau error fallback ke PlayerGui)
+-- Cari parent GUI sesuai exploit
 local parentGui
-pcall(function() parentGui = game:GetService("CoreGui") end)
-if not parentGui then
-    parentGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+if syn and syn.protect_gui then
+    local gui = Instance.new("ScreenGui")
+    syn.protect_gui(gui)
+    gui.Parent = gethui()
+    parentGui = gui
+elseif gethui then
+    parentGui = gethui()
+else
+    parentGui = game:GetService("CoreGui")
 end
 
 -- Hapus GUI lama
@@ -21,8 +26,8 @@ end
 -- Buat GUI
 local screen = Instance.new("ScreenGui")
 screen.Name = "ObbyRecorder"
-screen.Parent = parentGui
 screen.ResetOnSpawn = false
+screen.Parent = parentGui
 
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 220, 0, 160)
