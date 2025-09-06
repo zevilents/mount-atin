@@ -16,8 +16,8 @@ screenGui.ResetOnSpawn = false
 screenGui.Parent = playerGui
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 200, 0, 100)
-frame.Position = UDim2.new(0.5, -100, 0.2, 0)
+frame.Size = UDim2.new(0, 220, 0, 100)
+frame.Position = UDim2.new(0.5, -110, 0.2, 0)
 frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 frame.BorderSizePixel = 0
 frame.Parent = screenGui
@@ -50,6 +50,7 @@ local function goTo(position)
 	local humanoid = char:WaitForChild("Humanoid")
 	local hrp = char:WaitForChild("HumanoidRootPart")
 
+	-- Buat path
 	local path = PathfindingService:CreatePath({
 		AgentRadius = 2,
 		AgentHeight = 5,
@@ -64,24 +65,28 @@ local function goTo(position)
 		for _, waypoint in ipairs(path:GetWaypoints()) do
 			humanoid:MoveTo(waypoint.Position)
 			humanoid.MoveToFinished:Wait()
+
+			-- Kalau waypoint butuh lompat
 			if waypoint.Action == Enum.PathWaypointAction.Jump then
 				humanoid.Jump = true
 			end
 		end
 	else
-		warn("Path gagal ke tujuan:", position)
+		warn("❌ Path gagal ke:", position)
 	end
 end
 
--- Klik tombol → pindah ke POS 2 lalu jalan ke POS 3
+-- Klik tombol
 button.MouseButton1Click:Connect(function()
 	local char = player.Character or player.CharacterAdded:Wait()
 	local hrp = char:WaitForChild("HumanoidRootPart")
 
-	-- Pindah ke POS 2 dulu
+	-- Teleport ke POS 2 dulu
 	hrp.CFrame = CFrame.new(pos2)
-	wait(1) -- biar stabil
 
-	-- Jalan otomatis ke POS 3
+	-- Tunggu sedikit biar posisi fix
+	task.wait(1.5)
+
+	-- Hitung path dan jalan otomatis ke POS 3
 	goTo(pos3)
 end)
