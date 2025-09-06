@@ -1,5 +1,5 @@
 -- ===================================
--- FINAL TELEPORT GUI (ICON OPEN BUTTON GUNUNG)
+-- FINAL TELEPORT GUI (LocalScript)
 -- ===================================
 
 local Players = game:GetService("Players")
@@ -10,6 +10,9 @@ local UIS = game:GetService("UserInputService")
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
+
+-- Debug
+print("Teleport GUI Loaded")
 
 -- Hapus GUI lama
 if playerGui:FindFirstChild("TeleportGUI") then
@@ -24,11 +27,12 @@ screenGui.Parent = playerGui
 
 -- Frame utama
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 200, 0, 280)
-frame.Position = UDim2.new(0, 20, 0.3, 0)
+frame.Size = UDim2.new(0, 220, 0, 300)
+frame.Position = UDim2.new(0.05, 0, 0.2, 0) -- posisi aman di layar
 frame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
 frame.BackgroundTransparency = 0.1
 frame.BorderSizePixel = 0
+frame.Visible = true
 frame.Parent = screenGui
 
 local corner = Instance.new("UICorner")
@@ -81,11 +85,11 @@ layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
 	scroll.CanvasSize = UDim2.new(0,0,0,layout.AbsoluteContentSize.Y + 10)
 end)
 
--- Floating open button (icon-only)
+-- Floating open button (icon gunung)
 local openButton = Instance.new("ImageButton")
 openButton.Size = UDim2.new(0, 40, 0, 40)
-openButton.Position = frame.Position
-openButton.Image = "rbxassetid://6034283386" -- Ganti dengan ID asset ikon gunung
+openButton.Position = frame.Position + UDim2.new(0, frame.Size.X.Offset + 10, 0, 0)
+openButton.Image = "rbxassetid://6034283386" -- ganti dengan ikon gunung
 openButton.BackgroundColor3 = Color3.fromRGB(50, 150, 255)
 openButton.Visible = false
 openButton.Parent = screenGui
@@ -94,7 +98,7 @@ local openCorner = Instance.new("UICorner")
 openCorner.CornerRadius = UDim.new(0, 8)
 openCorner.Parent = openButton
 
--- Tooltip untuk openButton
+-- Tooltip
 local tooltip = Instance.new("TextLabel")
 tooltip.Size = UDim2.new(0, 140, 0, 25)
 tooltip.BackgroundTransparency = 0.5
@@ -114,14 +118,13 @@ openButton.MouseLeave:Connect(function()
 	tooltip.Visible = false
 end)
 
--- Tween animasi
+-- Tween
 local tweenIn = TweenInfo.new(0.4, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 local tweenOut = TweenInfo.new(0.4, Enum.EasingStyle.Quint, Enum.EasingDirection.In)
 
--- Variabel posisi terakhir
 local lastFramePos = frame.Position
 
--- Fungsi open/minimize GUI
+-- Fungsi open/minimize
 local function openGUI()
 	frame.Visible = true
 	openButton.Visible = false
@@ -158,11 +161,10 @@ local function teleportTo(position)
 	hrp.CFrame = CFrame.new(position)
 end
 
--- Fungsi buat tombol POS / Server Hop / Rejoin
-local function createButton(text, yPos, callback)
+-- Fungsi buat tombol
+local function createButton(text, callback)
 	local button = Instance.new("TextButton")
 	button.Size = UDim2.new(1, -10, 0, 35)
-	button.Position = UDim2.new(0, 5, 0, yPos)
 	button.Text = text
 	button.BackgroundColor3 = Color3.fromRGB(70, 130, 255)
 	button.TextColor3 = Color3.new(1,1,1)
@@ -177,6 +179,7 @@ local function createButton(text, yPos, callback)
 	if callback then
 		button.MouseButton1Click:Connect(callback)
 	end
+	return button
 end
 
 -- Daftar lokasi
@@ -191,37 +194,18 @@ local locations = {
 	{"POS 8", Vector3.new(-658, 688, 1458)},
 	{"POS 9", Vector3.new(-507, 903, 1868)},
 	{"POS 10", Vector3.new(59, 950, 2089)},
-	{"POS 11", Vector3.new(52, 981, 2450)},
-	{"POS 12", Vector3.new(72, 1097, 2456)},
-	{"POS 13", Vector3.new(264, 1270, 2038)},
-	{"POS 14", Vector3.new(-419, 1302, 2395)},
-	{"POS 15", Vector3.new(-773, 1314, 2665)},
-	{"POS 16", Vector3.new(-837, 1475, 2626)},
-	{"POS 17", Vector3.new(-469, 1465, 2769)},
-	{"POS 18", Vector3.new(-468, 1537, 2837)},
-	{"POS 19", Vector3.new(-386, 1640, 2795)},
-	{"POS 20", Vector3.new(-208, 1666, 2749)},
-	{"POS 21", Vector3.new(-233, 1742, 2792)},
-	{"POS 22", Vector3.new(-423, 1740, 2799)},
-	{"POS 23", Vector3.new(-424, 1713, 3421)},
-	{"POS 24", Vector3.new(71, 1719, 3428)},
-	{"POS 25", Vector3.new(436, 1720, 3431)},
-	{"POS 26", Vector3.new(625, 1799, 3433)},
 	{"PUNCAK", Vector3.new(781, 2163, 3921)},
 }
 
 -- Generate tombol lokasi
-local y = 0
 for _, data in ipairs(locations) do
-	local name, pos = data[1], data[2]
-	createButton(name, y, function()
-		teleportTo(pos)
+	createButton(data[1], function()
+		teleportTo(data[2])
 	end)
-	y = y + 40
 end
 
--- Tombol Server Hop
-createButton("🔄 Server Hop", y, function()
+-- Server Hop
+createButton("🔄 Server Hop", function()
 	local placeId = game.PlaceId
 	local servers = {}
 	local cursor = ""
@@ -229,6 +213,27 @@ createButton("🔄 Server Hop", y, function()
 	local function listServers()
 		local url = "https://games.roblox.com/v1/games/"..placeId.."/servers/Public?sortOrder=Asc&limit=100&cursor="..cursor
 		local response = game:HttpGet(url)
-		local data = HttpService:JSONDecode
-::contentReference[oaicite:3]{index=3}
- 
+		return HttpService:JSONDecode(response)
+	end
+
+	local success, data = pcall(listServers)
+	if success and data and data.data then
+		for _, server in ipairs(data.data) do
+			if server.playing < server.maxPlayers and server.id ~= game.JobId then
+				table.insert(servers, server.id)
+			end
+		end
+	end
+
+	if #servers > 0 then
+		local randomServer = servers[math.random(1,#servers)]
+		TeleportService:TeleportToPlaceInstance(placeId, randomServer, player)
+	else
+		warn("Tidak ada server lain ditemukan!")
+	end
+end)
+
+-- Rejoin
+createButton("🔁 Rejoin Server", function()
+	TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, player)
+end)
