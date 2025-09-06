@@ -1,0 +1,53 @@
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+if playerGui:FindFirstChild("PathGUI") then
+	playerGui.PathGUI:Destroy()
+end
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "PathGUI"
+screenGui.Parent = playerGui
+
+local button = Instance.new("TextButton")
+button.Size = UDim2.new(0, 240, 0, 50)
+button.Position = UDim2.new(0.5, -120, 0.2, 0)
+button.Text = "Jalan POS 2 → POS 3"
+button.BackgroundColor3 = Color3.fromRGB(70, 130, 255)
+button.TextColor3 = Color3.new(1, 1, 1)
+button.Font = Enum.Font.SourceSansBold
+button.TextSize = 18
+button.Parent = screenGui
+
+-- Lokasi
+local pos2 = Vector3.new(-184, 128, 408)
+local pos3 = Vector3.new(-166, 229, 652)
+
+-- Manual step-by-step walker
+local function walkTo(goal)
+	local char = player.Character or player.CharacterAdded:Wait()
+	local humanoid = char:WaitForChild("Humanoid")
+	local hrp = char:WaitForChild("HumanoidRootPart")
+
+	local stepSize = 8 -- makin kecil makin halus
+	while (hrp.Position - goal).Magnitude > 5 do
+		local direction = (goal - hrp.Position).Unit
+		local step = hrp.Position + direction * stepSize
+		humanoid:MoveTo(step)
+		humanoid.MoveToFinished:Wait(1)
+	end
+	print("✅ Sampai tujuan:", goal)
+end
+
+button.MouseButton1Click:Connect(function()
+	local char = player.Character or player.CharacterAdded:Wait()
+	local hrp = char:WaitForChild("HumanoidRootPart")
+
+	-- Teleport ke POS 2 dulu
+	hrp.CFrame = CFrame.new(pos2)
+	task.wait(1.5)
+
+	-- Jalan manual step ke POS 3
+	walkTo(pos3)
+end)
