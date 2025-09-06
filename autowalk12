@@ -1,0 +1,35 @@
+-- [[ GUI FIX UNTUK EXECUTOR ]]
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+
+-- pilih parent GUI
+local parentGui = (gethui and gethui()) or game:GetService("CoreGui")
+
+-- hapus GUI lama kalau ada
+if parentGui:FindFirstChild("AutoPathGui") then
+    parentGui.AutoPathGui:Destroy()
+end
+
+-- buat GUI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "AutoPathGui"
+screenGui.ResetOnSpawn = false
+screenGui.IgnoreGuiInset = true
+screenGui.Parent = parentGui
+
+local btn = Instance.new("TextButton")
+btn.Size = UDim2.new(0,220,0,44)
+btn.Position = UDim2.new(0.5,-110,0.8,0)
+btn.Text = "Jalan POS2 → POS3"
+btn.BackgroundColor3 = Color3.fromRGB(50,150,255)
+btn.TextColor3 = Color3.new(1,1,1)
+btn.Font = Enum.Font.SourceSansBold
+btn.TextSize = 18
+btn.Parent = screenGui
+
+-- tes tombol biar ketahuan muncul/tidak
+btn.MouseButton1Click:Connect(function()
+    print("Tombol diklik, GUI aktif.")
+end)
+
+print(">>> GUI sudah dibuat di:", parentGui)
