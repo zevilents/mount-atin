@@ -1,5 +1,5 @@
 -- ===================================
--- COMPACT TELEPORT GUI (V2)
+-- COMPACT TELEPORT GUI (FINAL FIX)
 -- ===================================
 
 local Players = game:GetService("Players")
@@ -20,7 +20,7 @@ screenGui.Name = "TeleportGUI"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = playerGui
 
--- FRAME utama (lebih ramping)
+-- FRAME utama
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 200, 0, 280)
 frame.Position = UDim2.new(0, -220, 0.3, 0)
@@ -69,6 +69,12 @@ scroll.BorderSizePixel = 0
 scroll.ScrollBarThickness = 4
 scroll.CanvasSize = UDim2.new()
 scroll.Parent = frame
+
+-- Layout otomatis (biar tombol tidak numpuk)
+local layout = Instance.new("UIListLayout")
+layout.Parent = scroll
+layout.Padding = UDim.new(0, 5)
+layout.SortOrder = Enum.SortOrder.LayoutOrder
 
 -- Floating open button
 local openButton = Instance.new("TextButton")
@@ -130,12 +136,11 @@ end
 local function createButton(text, callback)
 	local button = Instance.new("TextButton")
 	button.Size = UDim2.new(1, -10, 0, 30)
-	button.Position = UDim2.new(0, 5, 0, 0)
-	button.Text = text
 	button.BackgroundColor3 = Color3.fromRGB(60, 120, 200)
 	button.TextColor3 = Color3.new(1, 1, 1)
 	button.Font = Enum.Font.GothamBold
 	button.TextSize = 16
+	button.Text = text
 	button.Parent = scroll
 
 	local btnCorner = Instance.new("UICorner")
@@ -163,6 +168,27 @@ local locations = {
 	{"POS 3", Vector3.new(-166, 229, 652)},
 	{"POS 4", Vector3.new(-38, 406, 616)},
 	{"POS 5", Vector3.new(130, 651, 614)},
+	{"POS 6", Vector3.new(-247, 666, 735)},
+	{"POS 7", Vector3.new(-685, 641, 868)},
+	{"POS 8", Vector3.new(-658, 688, 1458)},
+	{"POS 9", Vector3.new(-507, 903, 1868)},
+	{"POS 10", Vector3.new(59, 950, 2089)},
+	{"POS 11", Vector3.new(52, 981, 2450)},
+	{"POS 12", Vector3.new(72, 1097, 2456)},
+	{"POS 13", Vector3.new(264, 1270, 2038)},
+	{"POS 14", Vector3.new(-419, 1302, 2395)},
+	{"POS 15", Vector3.new(-773, 1314, 2665)},
+	{"POS 16", Vector3.new(-837, 1475, 2626)},
+	{"POS 17", Vector3.new(-469, 1465, 2769)},
+	{"POS 18", Vector3.new(-468, 1537, 2837)},
+	{"POS 19", Vector3.new(-386, 1640, 2795)},
+	{"POS 20", Vector3.new(-208, 1666, 2749)},
+	{"POS 21", Vector3.new(-233, 1742, 2792)},
+	{"POS 22", Vector3.new(-423, 1740, 2799)},
+	{"POS 23", Vector3.new(-424, 1713, 3421)},
+	{"POS 24", Vector3.new(71, 1719, 3428)},
+	{"POS 25", Vector3.new(436, 1720, 3431)},
+	{"POS 26", Vector3.new(625, 1799, 3433)},
 	{"PUNCAK", Vector3.new(781, 2163, 3921)},
 }
 
@@ -174,17 +200,40 @@ for _, data in ipairs(locations) do
 	end)
 end
 
--- Server Hop
+-- Tombol Server Hop
 createButton("🔄 Server Hop", function()
-	-- isi tetap sama
+	local placeId = game.PlaceId
+	local servers = {}
+	local cursor = ""
+
+	local function listServers()
+		local url = "https://games.roblox.com/v1/games/" .. placeId .. "/servers/Public?sortOrder=Asc&limit=100&cursor=" .. cursor
+		local response = game:HttpGet(url)
+		local data = HttpService:JSONDecode(response)
+		return data
+	end
+
+	local success, data = pcall(listServers)
+	if success and data and data.data then
+		for _, server in ipairs(data.data) do
+			if server.playing < server.maxPlayers and server.id ~= game.JobId then
+				table.insert(servers, server.id)
+			end
+		end
+	end
+
+	if #servers > 0 then
+		local randomServer = servers[math.random(1, #servers)]
+		TeleportService:TeleportToPlaceInstance(placeId, randomServer, player)
+	else
+		warn("Tidak ada server lain ditemukan!")
+	end
 end)
 
--- Rejoin
+-- Tombol Rejoin
 createButton("🔁 Rejoin Server", function()
 	TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, player)
 end)
-
-scroll.CanvasSize = UDim2.new(0, 0, 0, #locations * 35 + 80)
 
 -- Auto buka pertama kali
 openGUI()
