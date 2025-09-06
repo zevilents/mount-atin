@@ -1,0 +1,87 @@
+local Players = game:GetService("Players")
+local PathfindingService = game:GetService("PathfindingService")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- Hapus GUI lama kalau ada
+if playerGui:FindFirstChild("PathGUI") then
+	playerGui.PathGUI:Destroy()
+end
+
+-- Buat GUI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "PathGUI"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = playerGui
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 200, 0, 100)
+frame.Position = UDim2.new(0.5, -100, 0.2, 0)
+frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+frame.BorderSizePixel = 0
+frame.Parent = screenGui
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 12)
+corner.Parent = frame
+
+local button = Instance.new("TextButton")
+button.Size = UDim2.new(1, -20, 0, 40)
+button.Position = UDim2.new(0, 10, 0, 30)
+button.Text = "Jalan: POS 2 → POS 3"
+button.BackgroundColor3 = Color3.fromRGB(70, 130, 255)
+button.TextColor3 = Color3.new(1, 1, 1)
+button.Font = Enum.Font.SourceSansBold
+button.TextSize = 16
+button.Parent = frame
+
+local btnCorner = Instance.new("UICorner")
+btnCorner.CornerRadius = UDim.new(0, 8)
+btnCorner.Parent = button
+
+-- Lokasi
+local pos2 = Vector3.new(-184, 128, 408)
+local pos3 = Vector3.new(-166, 229, 652)
+
+-- Fungsi AI jalan
+local function goTo(position)
+	local char = player.Character or player.CharacterAdded:Wait()
+	local humanoid = char:WaitForChild("Humanoid")
+	local hrp = char:WaitForChild("HumanoidRootPart")
+
+	local path = PathfindingService:CreatePath({
+		AgentRadius = 2,
+		AgentHeight = 5,
+		AgentCanJump = true,
+		AgentJumpHeight = 10,
+		AgentMaxSlope = 45,
+	})
+
+	path:ComputeAsync(hrp.Position, position)
+
+	if path.Status == Enum.PathStatus.Complete then
+		for _, waypoint in ipairs(path:GetWaypoints()) do
+			humanoid:MoveTo(waypoint.Position)
+			humanoid.MoveToFinished:Wait()
+			if waypoint.Action == Enum.PathWaypointAction.Jump then
+				humanoid.Jump = true
+			end
+		end
+	else
+		warn("Path gagal ke tujuan:", position)
+	end
+end
+
+-- Klik tombol → pindah ke POS 2 lalu jalan ke POS 3
+button.MouseButton1Click:Connect(function()
+	local char = player.Character or player.CharacterAdded:Wait()
+	local hrp = char:WaitForChild("HumanoidRootPart")
+
+	-- Pindah ke POS 2 dulu
+	hrp.CFrame = CFrame.new(pos2)
+	wait(1) -- biar stabil
+
+	-- Jalan otomatis ke POS 3
+	goTo(pos3)
+end)
