@@ -1,0 +1,80 @@
+-- GUI SETUP
+local player = game.Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+if playerGui:FindFirstChild("AutoFishingGUI") then
+    playerGui.AutoFishingGUI:Destroy()
+end
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "AutoFishingGUI"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = playerGui
+
+local button = Instance.new("TextButton")
+button.Size = UDim2.new(0, 140, 0, 40)
+button.Position = UDim2.new(0, 20, 0, 200)
+button.BackgroundColor3 = Color3.fromRGB(50, 150, 255)
+button.Text = "Auto Fishing: OFF"
+button.TextColor3 = Color3.new(1, 1, 1)
+button.Font = Enum.Font.SourceSansBold
+button.TextSize = 18
+button.Parent = screenGui
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 10)
+corner.Parent = button
+
+-- REMOTES
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Net = ReplicatedStorage:WaitForChild("Packages")
+    :WaitForChild("_Index")
+    :WaitForChild("sleitnick_net@0.2.0")
+    :WaitForChild("net")
+
+local ChargeFishingRod = Net:WaitForChild("RF/ChargeFishingRod")
+local RequestFishingMinigameStarted = Net:WaitForChild("RF/RequestFishingMinigameStarted")
+local FishingCompleted = Net:WaitForChild("RE/FishingCompleted")
+
+-- AUTO FISHING
+local running = false
+
+local function autoFish()
+    while running do
+        task.wait(1)
+
+        -- 1. Lempar pancing
+        pcall(function()
+            ChargeFishingRod:InvokeServer()
+        end)
+
+        task.wait(2) -- tunggu ikan nyangkut
+
+        -- 2. Mulai minigame
+        pcall(function()
+            RequestFishingMinigameStarted:InvokeServer()
+        end)
+
+        task.wait(0.5)
+
+        -- 3. Skip minigame langsung selesai
+        pcall(function()
+            FishingCompleted:FireServer()
+        end)
+
+        task.wait(1)
+    end
+end
+
+-- TOGGLE BUTTON
+button.MouseButton1Click:Connect(function()
+    running = not running
+    if running then
+        button.Text = "Auto Fishing: ON"
+        button.BackgroundColor3 = Color3.fromRGB(0, 200, 100)
+        task.spawn(autoFish)
+    else
+        button.Text = "Auto Fishing: OFF"
+        button.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+    end
+end)
