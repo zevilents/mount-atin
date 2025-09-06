@@ -1,0 +1,97 @@
+-- ===============================
+-- WELCOME SCREEN ANIMASI
+-- ===============================
+
+local welcomeGui = Instance.new("ScreenGui")
+welcomeGui.Name = "WelcomeScreen"
+welcomeGui.ResetOnSpawn = false
+welcomeGui.Parent = playerGui
+
+-- Background
+local bg = Instance.new("Frame")
+bg.Size = UDim2.new(1,0,1,0)
+bg.Position = UDim2.new(0,0,0,0)
+bg.BackgroundColor3 = Color3.fromRGB(20,20,30)
+bg.Parent = welcomeGui
+
+-- Judul
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1,0,0,100)
+title.Position = UDim2.new(0,0,0,150)
+title.BackgroundTransparency = 1
+title.Text = "🚀 Welcome to the Game!"
+title.TextColor3 = Color3.fromRGB(200,230,255)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 36
+title.TextTransparency = 1 -- awalnya transparan
+title.Parent = bg
+
+-- Subtitle
+local subtitle = Instance.new("TextLabel")
+subtitle.Size = UDim2.new(1,0,0,50)
+subtitle.Position = UDim2.new(0,0,0,270)
+subtitle.BackgroundTransparency = 1
+subtitle.Text = "Prepare for adventure!"
+subtitle.TextColor3 = Color3.fromRGB(180,180,200)
+subtitle.Font = Enum.Font.Gotham
+subtitle.TextSize = 24
+subtitle.TextTransparency = 1 -- awalnya transparan
+subtitle.Parent = bg
+
+-- Roket animasi
+local rocket = Instance.new("ImageLabel")
+rocket.Size = UDim2.new(0,50,0,50)
+rocket.Position = UDim2.new(0.5,-25,1,0) -- start di bawah layar
+rocket.BackgroundTransparency = 1
+rocket.Image = "rbxassetid://6034283386" -- icon roket
+rocket.Parent = bg
+
+-- Continue button
+local continueBtn = Instance.new("TextButton")
+continueBtn.Size = UDim2.new(0,200,0,50)
+continueBtn.Position = UDim2.new(0.5,-100,0.8,0)
+continueBtn.BackgroundColor3 = Color3.fromRGB(70,130,255)
+continueBtn.Text = "Continue"
+continueBtn.TextColor3 = Color3.new(1,1,1)
+continueBtn.Font = Enum.Font.GothamBold
+continueBtn.TextSize = 22
+continueBtn.TextTransparency = 1 -- awalnya transparan
+continueBtn.Parent = bg
+
+local btnCorner = Instance.new("UICorner")
+btnCorner.CornerRadius = UDim.new(0,12)
+btnCorner.Parent = continueBtn
+
+-- Fungsi animasi fade-in teks dan tombol
+spawn(function()
+	for i = 0,1,0.02 do
+		title.TextTransparency = 1 - i
+		subtitle.TextTransparency = 1 - i
+		continueBtn.TextTransparency = 1 - i
+		wait(0.02)
+	end
+end)
+
+-- Fungsi animasi roket naik
+spawn(function()
+	for i = 1,0,-0.01 do
+		rocket.Position = UDim2.new(0.5,-25,i,0)
+		wait(0.01)
+	end
+end)
+
+-- Fungsi fade-out welcome screen
+local function closeWelcome()
+	for i = 1,10 do
+		bg.BackgroundTransparency = bg.BackgroundTransparency + 0.1
+		title.TextTransparency = title.TextTransparency + 0.1
+		subtitle.TextTransparency = subtitle.TextTransparency + 0.1
+		continueBtn.TextTransparency = continueBtn.TextTransparency + 0.1
+		rocket.ImageTransparency = rocket.ImageTransparency + 0.1
+		wait(0.03)
+	end
+	welcomeGui:Destroy()
+	openGUI() -- buka teleport GUI setelah welcome screen
+end
+
+continueBtn.MouseButton1Click:Connect(closeWelcome)
