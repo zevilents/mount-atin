@@ -1,29 +1,19 @@
--- GUI SETUP
+-- GUI
 local player = game.Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
+local gui = Instance.new("ScreenGui", player.PlayerGui)
+gui.Name = "FishItGUI"
 
-if playerGui:FindFirstChild("AutoFishingGUI") then
-    playerGui.AutoFishingGUI:Destroy()
-end
-
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "AutoFishingGUI"
-screenGui.ResetOnSpawn = false
-screenGui.Parent = playerGui
-
-local button = Instance.new("TextButton")
-button.Size = UDim2.new(0, 140, 0, 40)
-button.Position = UDim2.new(0, 20, 0, 200)
-button.BackgroundColor3 = Color3.fromRGB(50, 150, 255)
+local button = Instance.new("TextButton", gui)
+button.Size = UDim2.new(0, 160, 0, 50)
+button.Position = UDim2.new(0.05, 0, 0.3, 0)
+button.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
 button.Text = "Auto Fishing: OFF"
-button.TextColor3 = Color3.new(1, 1, 1)
+button.TextSize = 20
 button.Font = Enum.Font.SourceSansBold
-button.TextSize = 18
-button.Parent = screenGui
+button.TextColor3 = Color3.new(1,1,1)
 
-local corner = Instance.new("UICorner")
+local corner = Instance.new("UICorner", button)
 corner.CornerRadius = UDim.new(0, 10)
-corner.Parent = button
 
 -- REMOTES
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -36,28 +26,28 @@ local ChargeFishingRod = Net:WaitForChild("RF/ChargeFishingRod")
 local RequestFishingMinigameStarted = Net:WaitForChild("RF/RequestFishingMinigameStarted")
 local FishingCompleted = Net:WaitForChild("RE/FishingCompleted")
 
--- AUTO FISHING
+-- VAR
 local running = false
 
 local function autoFish()
     while running do
         task.wait(1)
 
-        -- 1. Lempar pancing
+        -- lempar pancing
         pcall(function()
             ChargeFishingRod:InvokeServer()
         end)
 
-        task.wait(2) -- tunggu ikan nyangkut
+        task.wait(2)
 
-        -- 2. Mulai minigame
+        -- mulai minigame
         pcall(function()
             RequestFishingMinigameStarted:InvokeServer()
         end)
 
         task.wait(0.5)
 
-        -- 3. Skip minigame langsung selesai
+        -- langsung claim hasil
         pcall(function()
             FishingCompleted:FireServer()
         end)
@@ -66,7 +56,7 @@ local function autoFish()
     end
 end
 
--- TOGGLE BUTTON
+-- BUTTON
 button.MouseButton1Click:Connect(function()
     running = not running
     if running then
