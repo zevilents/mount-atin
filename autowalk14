@@ -1,4 +1,4 @@
--- [[ GUI + Pathfinding POS2 -> POS3 ]]
+-- [[ GUI + Pathfinding POS2 -> POS3 (koordinat update) ]]
 local Players = game:GetService("Players")
 local PathfindingService = game:GetService("PathfindingService")
 
@@ -28,11 +28,11 @@ btn.Font = Enum.Font.SourceSansBold
 btn.TextSize = 18
 btn.Parent = screenGui
 
--- POSISI TEST
-local pos2 = Vector3.new(-1203, 262, -489)
-local pos3 = Vector3.new(-1399, 579, -950)
+-- POSISI TEST (update)
+local pos2 = Vector3.new(-184, 128, 408)
+local pos3 = Vector3.new(-166, 229, 652)
 
--- fungsi untuk bikin path
+-- fungsi buat path
 local function createPath(startPos, endPos)
     local path = PathfindingService:CreatePath({
         AgentHeight = 5,
