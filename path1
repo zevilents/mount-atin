@@ -1,5 +1,5 @@
 -- ====================================
--- PATH RECORDER GUI
+-- FINAL NATURAL PATH RECORDER GUI
 -- ====================================
 local Players = game:GetService("Players")
 local HttpService = game:GetService("HttpService")
@@ -11,14 +11,17 @@ local hrp = character:WaitForChild("HumanoidRootPart")
 local path = {}
 local recording = false
 local playback = false
+local lastTime = tick()
 
--- Buat GUI
+-- ====================================
+-- GUI
+-- ====================================
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "PathRecorder"
 screenGui.Parent = player:WaitForChild("PlayerGui")
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 220, 0, 230)
+frame.Size = UDim2.new(0, 230, 0, 250)
 frame.Position = UDim2.new(0, 50, 0, 100)
 frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 frame.Parent = screenGui
@@ -51,63 +54,87 @@ local function createButton(text, callback)
     button.MouseButton1Click:Connect(callback)
 end
 
--- =======================
--- Fungsi Record
--- =======================
+-- ====================================
+-- Record
+-- ====================================
 local function startRecord()
     path = {}
     recording = true
-    print("Mulai record path...")
+    lastTime = tick()
+    print("▶ Mulai record path...")
     task.spawn(function()
         while recording do
-            table.insert(path, hrp.Position)
-            task.wait(0.3) -- setiap 0.3 detik ambil posisi
+            local now = tick()
+            local delayTime = now - lastTime
+            lastTime = now
+
+            table.insert(path, {
+                Pos = hrp.Position,
+                State = humanoid:GetState(),
+                Delay = delayTime
+            })
+
+            task.wait(0.2) -- sampling rate (semakin kecil = makin detail)
         end
     end)
 end
 
 local function stopRecord()
     recording = false
-    print("Stop record. Total titik:", #path)
+    print("■ Stop record. Total titik:", #path)
 end
 
--- =======================
--- Fungsi Play
--- =======================
+-- ====================================
+-- Playback
+-- ====================================
 local function playPath()
     if #path == 0 then
         warn("Belum ada path!")
         return
     end
     playback = true
-    print("Mulai jalan sesuai path...")
-    for _,pos in ipairs(path) do
+    print("🚶 Mulai playback path...")
+    for _,step in ipairs(path) do
         if not playback then break end
-        humanoid:MoveTo(pos)
+
+        -- jeda sesuai record
+        task.wait(step.Delay)
+
+        -- kalau lompat
+        if step.State == Enum.HumanoidStateType.Jumping then
+            humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+        end
+
+        -- jalan ke posisi
+        humanoid:MoveTo(step.Pos)
         humanoid.MoveToFinished:Wait()
     end
-    print("Selesai jalan path")
+    print("✔ Selesai playback path")
 end
 
 local function stopPlay()
     playback = false
-    print("Stop playback")
+    print("⏹ Stop playback")
 end
 
--- =======================
--- Fungsi Save / Load
--- =======================
+-- ====================================
+-- Save / Load
+-- ====================================
 local function savePath()
     if not writefile then
         warn("Exploit kamu tidak support writefile!")
         return
     end
     local data = {}
-    for _,pos in ipairs(path) do
-        table.insert(data, {X=pos.X, Y=pos.Y, Z=pos.Z})
+    for _,step in ipairs(path) do
+        table.insert(data, {
+            Pos = {X=step.Pos.X, Y=step.Pos.Y, Z=step.Pos.Z},
+            State = step.State.Value,
+            Delay = step.Delay
+        })
     end
     writefile("path.json", HttpService:JSONEncode(data))
-    print("Path berhasil disimpan ke path.json")
+    print("💾 Path berhasil disimpan ke path.json")
 end
 
 local function loadPath()
@@ -117,15 +144,19 @@ local function loadPath()
     end
     local data = HttpService:JSONDecode(readfile("path.json"))
     path = {}
-    for _,pos in ipairs(data) do
-        table.insert(path, Vector3.new(pos.X, pos.Y, pos.Z))
+    for _,step in ipairs(data) do
+        table.insert(path, {
+            Pos = Vector3.new(step.Pos.X, step.Pos.Y, step.Pos.Z),
+            State = Enum.HumanoidStateType[step.State],
+            Delay = step.Delay
+        })
     end
-    print("Path berhasil dimuat! Total titik:", #path)
+    print("📂 Path berhasil dimuat! Total titik:", #path)
 end
 
--- =======================
--- Buat tombol GUI
--- =======================
+-- ====================================
+-- Tombol GUI
+-- ====================================
 createButton("▶ Start Record", startRecord)
 createButton("■ Stop Record", stopRecord)
 createButton("🚶 Play Path", playPath)
