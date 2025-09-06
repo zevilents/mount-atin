@@ -1,0 +1,56 @@
+-- ===============[ SimplePath Mini Loader ]==================
+local PathfindingService = game:GetService("PathfindingService")
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local char = player.Character or player.CharacterAdded:Wait()
+local hum = char:WaitForChild("Humanoid")
+
+-- mini wrapper
+local function createPath(startPos, endPos)
+    local path = PathfindingService:CreatePath({
+        AgentHeight = 5,
+        AgentRadius = 2,
+        AgentCanJump = true
+    })
+    path:ComputeAsync(startPos, endPos)
+    return path
+end
+
+local function followPath(path)
+    if path.Status == Enum.PathStatus.Complete then
+        local waypoints = path:GetWaypoints()
+        for i, wp in ipairs(waypoints) do
+            hum:MoveTo(wp.Position)
+            hum.MoveToFinished:Wait()
+        end
+        print("Sampai tujuan!")
+    else
+        warn("Path tidak valid")
+    end
+end
+
+-- ===============[ GUI BUTTON ]==================
+local CoreGui = game:GetService("CoreGui")
+local screenGui = Instance.new("ScreenGui", CoreGui)
+
+local button = Instance.new("TextButton")
+button.Size = UDim2.new(0,200,0,50)
+button.Position = UDim2.new(0.5,-100,0.8,0)
+button.Text = "Pos2 → Pos3"
+button.BackgroundColor3 = Color3.fromRGB(50,150,50)
+button.TextColor3 = Color3.fromRGB(255,255,255)
+button.Parent = screenGui
+
+-- posisi test
+local pos2 = Vector3.new(-1203, 262, -489)
+local pos3 = Vector3.new(-1399, 579, -950)
+
+button.MouseButton1Click:Connect(function()
+    -- teleport dulu ke pos2
+    char:PivotTo(CFrame.new(pos2))
+    task.wait(1)
+
+    -- bikin path dari pos2 ke pos3
+    local path = createPath(char.PrimaryPart.Position, pos3)
+    followPath(path)
+end)
