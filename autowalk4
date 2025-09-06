@@ -1,0 +1,84 @@
+local Players = game:GetService("Players")
+local PathfindingService = game:GetService("PathfindingService")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+if playerGui:FindFirstChild("PathGUI") then
+	playerGui.PathGUI:Destroy()
+end
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "PathGUI"
+screenGui.Parent = playerGui
+
+local button = Instance.new("TextButton")
+button.Size = UDim2.new(0, 240, 0, 50)
+button.Position = UDim2.new(0.5, -120, 0.2, 0)
+button.Text = "Hybrid: POS 2 → POS 3"
+button.BackgroundColor3 = Color3.fromRGB(70, 130, 255)
+button.TextColor3 = Color3.new(1, 1, 1)
+button.Font = Enum.Font.SourceSansBold
+button.TextSize = 18
+button.Parent = screenGui
+
+-- Lokasi
+local pos2 = Vector3.new(-184, 128, 408)
+local pos3 = Vector3.new(-166, 229, 652)
+
+-- Manual fallback: pecah jadi langkah kecil
+local function manualWalkTo(humanoid, hrp, goal)
+	local stepSize = 10 -- jarak per langkah
+	while (hrp.Position - goal).Magnitude > 5 do
+		local direction = (goal - hrp.Position).Unit
+		local step = hrp.Position + direction * stepSize
+		humanoid:MoveTo(step)
+		humanoid.MoveToFinished:Wait(1)
+	end
+	print("✅ Sampai tujuan manual:", goal)
+end
+
+-- Pathfinding attempt
+local function goTo(goal)
+	local char = player.Character or player.CharacterAdded:Wait()
+	local humanoid = char:WaitForChild("Humanoid")
+	local hrp = char:WaitForChild("HumanoidRootPart")
+
+	-- Buat path
+	local path = PathfindingService:CreatePath({
+		AgentRadius = 2,
+		AgentHeight = 5,
+		AgentCanJump = true,
+		AgentJumpHeight = 10,
+		AgentMaxSlope = 45,
+	})
+
+	path:ComputeAsync(hrp.Position, goal)
+
+	if path.Status == Enum.PathStatus.Complete then
+		print("✅ Path ditemukan:", #path:GetWaypoints(), "waypoints")
+		for _, waypoint in ipairs(path:GetWaypoints()) do
+			humanoid:MoveTo(waypoint.Position)
+			humanoid.MoveToFinished:Wait(1)
+
+			if waypoint.Action == Enum.PathWaypointAction.Jump then
+				humanoid.Jump = true
+			end
+		end
+	else
+		warn("❌ Path gagal, pakai manual walker")
+		manualWalkTo(humanoid, hrp, goal)
+	end
+end
+
+button.MouseButton1Click:Connect(function()
+	local char = player.Character or player.CharacterAdded:Wait()
+	local hrp = char:WaitForChild("HumanoidRootPart")
+
+	-- Teleport ke POS 2
+	hrp.CFrame = CFrame.new(pos2)
+	task.wait(1.5)
+
+	-- Jalan ke POS 3 (hybrid)
+	goTo(pos3)
+end)
