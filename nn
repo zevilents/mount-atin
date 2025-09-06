@@ -1,5 +1,5 @@
 -- ===================================
--- COMPACT TELEPORT GUI (FINAL SCROLL FIX)
+-- FINAL TELEPORT GUI (ICON OPEN BUTTON)
 -- ===================================
 
 local Players = game:GetService("Players")
@@ -11,19 +11,21 @@ local UIS = game:GetService("UserInputService")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
+-- Hapus GUI lama
 if playerGui:FindFirstChild("TeleportGUI") then
 	playerGui.TeleportGUI:Destroy()
 end
 
+-- ScreenGui
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "TeleportGUI"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = playerGui
 
--- FRAME utama
+-- Frame utama
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 200, 0, 280)
-frame.Position = UDim2.new(0, -220, 0.3, 0)
+frame.Position = UDim2.new(0, 20, 0.3, 0)
 frame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
 frame.BackgroundTransparency = 0.1
 frame.BorderSizePixel = 0
@@ -75,21 +77,16 @@ local layout = Instance.new("UIListLayout")
 layout.Parent = scroll
 layout.Padding = UDim.new(0, 5)
 layout.SortOrder = Enum.SortOrder.LayoutOrder
-
--- Auto-update CanvasSize sesuai jumlah tombol
 layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-	scroll.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 10)
+	scroll.CanvasSize = UDim2.new(0,0,0,layout.AbsoluteContentSize.Y + 10)
 end)
 
--- Floating open button
-local openButton = Instance.new("TextButton")
-openButton.Size = UDim2.new(0, 90, 0, 35)
-openButton.Position = UDim2.new(0, 20, 0.3, 0)
-openButton.Text = "Teleport"
+-- Floating open button (icon-only)
+local openButton = Instance.new("ImageButton")
+openButton.Size = UDim2.new(0, 40, 0, 40)
+openButton.Position = frame.Position
+openButton.Image = "rbxassetid://6031094660" -- ganti dengan icon
 openButton.BackgroundColor3 = Color3.fromRGB(50, 150, 255)
-openButton.TextColor3 = Color3.new(1, 1, 1)
-openButton.Font = Enum.Font.GothamBold
-openButton.TextSize = 18
 openButton.Visible = false
 openButton.Parent = screenGui
 
@@ -97,28 +94,52 @@ local openCorner = Instance.new("UICorner")
 openCorner.CornerRadius = UDim.new(0, 8)
 openCorner.Parent = openButton
 
+-- Tooltip untuk openButton
+local tooltip = Instance.new("TextLabel")
+tooltip.Size = UDim2.new(0, 120, 0, 25)
+tooltip.BackgroundTransparency = 0.5
+tooltip.BackgroundColor3 = Color3.fromRGB(0,0,0)
+tooltip.TextColor3 = Color3.new(1,1,1)
+tooltip.Font = Enum.Font.Gotham
+tooltip.TextSize = 14
+tooltip.Text = "Open Teleport Menu"
+tooltip.Visible = false
+tooltip.Parent = screenGui
+
+openButton.MouseEnter:Connect(function()
+	tooltip.Position = UDim2.new(0, openButton.AbsolutePosition.X + 45, 0, openButton.AbsolutePosition.Y)
+	tooltip.Visible = true
+end)
+openButton.MouseLeave:Connect(function()
+	tooltip.Visible = false
+end)
+
 -- Tween animasi
 local tweenIn = TweenInfo.new(0.4, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 local tweenOut = TweenInfo.new(0.4, Enum.EasingStyle.Quint, Enum.EasingDirection.In)
 
+-- Variabel posisi terakhir
+local lastFramePos = frame.Position
+
+-- Fungsi open/minimize GUI
 local function openGUI()
 	frame.Visible = true
 	openButton.Visible = false
-	TweenService:Create(frame, tweenIn, {Position = UDim2.new(0, 20, 0.3, 0)}):Play()
+	TweenService:Create(frame, tweenIn, {Position = lastFramePos}):Play()
 end
 
 local function minimizeGUI()
-	local tween = TweenService:Create(frame, tweenOut, {Position = UDim2.new(0, -220, 0.3, 0)})
-	tween:Play()
-	tween.Completed:Wait()
+	lastFramePos = frame.Position
+	TweenService:Create(frame, tweenOut, {Position = UDim2.new(frame.Position.X.Scale, frame.Position.X.Offset - 220, frame.Position.Y.Scale, frame.Position.Y.Offset)}):Play()
 	frame.Visible = false
+	openButton.Position = lastFramePos
 	openButton.Visible = true
 end
 
 minimizeButton.MouseButton1Click:Connect(minimizeGUI)
 openButton.MouseButton1Click:Connect(openGUI)
 
--- Keybind (G)
+-- Keybind G
 UIS.InputBegan:Connect(function(input, gameProcessed)
 	if gameProcessed then return end
 	if input.KeyCode == Enum.KeyCode.G then
@@ -137,36 +158,28 @@ local function teleportTo(position)
 	hrp.CFrame = CFrame.new(position)
 end
 
--- Fungsi buat tombol
-local function createButton(text, callback)
+-- Fungsi buat tombol (POS & Server Hop/Rejoin)
+local function createButton(text, yPos, callback)
 	local button = Instance.new("TextButton")
-	button.Size = UDim2.new(1, -10, 0, 30)
-	button.BackgroundColor3 = Color3.fromRGB(60, 120, 200)
-	button.TextColor3 = Color3.new(1, 1, 1)
+	button.Size = UDim2.new(1, -10, 0, 35)
+	button.Position = UDim2.new(0, 5, 0, yPos)
+	button.Text = text
+	button.BackgroundColor3 = Color3.fromRGB(70, 130, 255)
+	button.TextColor3 = Color3.new(1,1,1)
 	button.Font = Enum.Font.GothamBold
 	button.TextSize = 16
-	button.Text = text
 	button.Parent = scroll
 
 	local btnCorner = Instance.new("UICorner")
-	btnCorner.CornerRadius = UDim.new(0, 6)
+	btnCorner.CornerRadius = UDim.new(0, 8)
 	btnCorner.Parent = button
-
-	-- Hover effect
-	button.MouseEnter:Connect(function()
-		button.BackgroundColor3 = Color3.fromRGB(90, 150, 255)
-	end)
-	button.MouseLeave:Connect(function()
-		button.BackgroundColor3 = Color3.fromRGB(60, 120, 200)
-	end)
 
 	if callback then
 		button.MouseButton1Click:Connect(callback)
 	end
-	return button
 end
 
--- Lokasi teleport
+-- Daftar lokasi
 local locations = {
 	{"POS 1", Vector3.new(5, 12, -404)},
 	{"POS 2", Vector3.new(-184, 128, 408)},
@@ -198,21 +211,23 @@ local locations = {
 }
 
 -- Generate tombol lokasi
+local y = 0
 for _, data in ipairs(locations) do
 	local name, pos = data[1], data[2]
-	createButton(name, function()
+	createButton(name, y, function()
 		teleportTo(pos)
 	end)
+	y = y + 40
 end
 
 -- Tombol Server Hop
-createButton("🔄 Server Hop", function()
+createButton("🔄 Server Hop", y, function()
 	local placeId = game.PlaceId
 	local servers = {}
 	local cursor = ""
 
 	local function listServers()
-		local url = "https://games.roblox.com/v1/games/" .. placeId .. "/servers/Public?sortOrder=Asc&limit=100&cursor=" .. cursor
+		local url = "https://games.roblox.com/v1/games/"..placeId.."/servers/Public?sortOrder=Asc&limit=100&cursor="..cursor
 		local response = game:HttpGet(url)
 		local data = HttpService:JSONDecode(response)
 		return data
@@ -228,19 +243,20 @@ createButton("🔄 Server Hop", function()
 	end
 
 	if #servers > 0 then
-		local randomServer = servers[math.random(1, #servers)]
+		local randomServer = servers[math.random(1,#servers)]
 		TeleportService:TeleportToPlaceInstance(placeId, randomServer, player)
 	else
 		warn("Tidak ada server lain ditemukan!")
 	end
 end)
+y = y + 40
 
 -- Tombol Rejoin
-createButton("🔁 Rejoin Server", function()
+createButton("🔁 Rejoin Server", y, function()
 	TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, player)
 end)
 
--- Auto buka pertama kali
+-- Auto open pertama kali
 openGUI()
 
 -- ===================================
@@ -254,6 +270,7 @@ local function update(input)
 		startPos.X.Scale, startPos.X.Offset + delta.X,
 		startPos.Y.Scale, startPos.Y.Offset + delta.Y
 	)
+	lastFramePos = frame.Position
 end
 
 frame.InputBegan:Connect(function(input)
