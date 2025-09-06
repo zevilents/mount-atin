@@ -1,27 +1,32 @@
--- FINAL INPUT RECORDER GUI (Natural Replay)
+-- FINAL INPUT RECORDER GUI (Fix GUI Tidak Muncul)
 -- Rekam input keyboard (WASD + Space), simpan, dan replay
 -- GUI dengan tombol Record / Stop / Play
 
 local UIS = game:GetService("UserInputService")
 local VIM = game:GetService("VirtualInputManager")
 local HttpService = game:GetService("HttpService")
-local Players = game:GetService("Players")
 
-local player = Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
-
--- GUI Setup
-if playerGui:FindFirstChild("ObbyRecorder") then
-	playerGui.ObbyRecorder:Destroy()
+-- GUI Parent (CoreGui lebih aman, kalau error fallback ke PlayerGui)
+local parentGui
+pcall(function() parentGui = game:GetService("CoreGui") end)
+if not parentGui then
+    parentGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
 end
 
+-- Hapus GUI lama
+if parentGui:FindFirstChild("ObbyRecorder") then
+	parentGui.ObbyRecorder:Destroy()
+end
+
+-- Buat GUI
 local screen = Instance.new("ScreenGui")
 screen.Name = "ObbyRecorder"
-screen.Parent = playerGui
+screen.Parent = parentGui
+screen.ResetOnSpawn = false
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 200, 0, 150)
-frame.Position = UDim2.new(0, 20, 0, 200)
+frame.Size = UDim2.new(0, 220, 0, 160)
+frame.Position = UDim2.new(0, 50, 0, 200)
 frame.BackgroundColor3 = Color3.fromRGB(40,40,40)
 frame.Parent = screen
 
@@ -29,9 +34,42 @@ local corner = Instance.new("UICorner")
 corner.CornerRadius = UDim.new(0,10)
 corner.Parent = frame
 
+-- Drag Support
+local dragging, dragInput, dragStart, startPos
+local function update(input)
+	local delta = input.Position - dragStart
+	frame.Position = UDim2.new(
+		startPos.X.Scale, startPos.X.Offset + delta.X,
+		startPos.Y.Scale, startPos.Y.Offset + delta.Y
+	)
+end
+frame.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = true
+		dragStart = input.Position
+		startPos = frame.Position
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
+end)
+frame.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement then
+		dragInput = input
+	end
+end)
+UIS.InputChanged:Connect(function(input)
+	if input == dragInput and dragging then
+		update(input)
+	end
+end)
+
+-- Utility buat tombol
 local function createBtn(txt, order, callback)
 	local btn = Instance.new("TextButton")
-	btn.Size = UDim2.new(0, 180, 0, 40)
+	btn.Size = UDim2.new(0, 200, 0, 40)
 	btn.Position = UDim2.new(0, 10, 0, 10 + (order * 45))
 	btn.Text = txt
 	btn.BackgroundColor3 = Color3.fromRGB(70,130,255)
@@ -46,7 +84,7 @@ local function createBtn(txt, order, callback)
 	bcorner.Parent = btn
 end
 
--- Recorder
+-- Recorder logic
 local recording = false
 local playing = false
 local recordData = {}
@@ -83,7 +121,6 @@ local function playRecording()
 	spawn(function()
 		for _, input in ipairs(data) do
 			task.wait(input.delay)
-
 			VIM:SendKeyEvent(input.began, input.key, false, game)
 		end
 		playing = false
