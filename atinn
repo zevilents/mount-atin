@@ -1,0 +1,228 @@
+-- ===================================
+-- COMPACT TELEPORT GUI (V2)
+-- ===================================
+
+local Players = game:GetService("Players")
+local TeleportService = game:GetService("TeleportService")
+local HttpService = game:GetService("HttpService")
+local TweenService = game:GetService("TweenService")
+local UIS = game:GetService("UserInputService")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+if playerGui:FindFirstChild("TeleportGUI") then
+	playerGui.TeleportGUI:Destroy()
+end
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "TeleportGUI"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = playerGui
+
+-- FRAME utama (lebih ramping)
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 200, 0, 280)
+frame.Position = UDim2.new(0, -220, 0.3, 0)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+frame.BackgroundTransparency = 0.1
+frame.BorderSizePixel = 0
+frame.Parent = screenGui
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 12)
+corner.Parent = frame
+
+-- Judul
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -40, 0, 30)
+title.Position = UDim2.new(0, 10, 0, 5)
+title.BackgroundTransparency = 1
+title.Text = "🚀 Teleport Menu"
+title.TextColor3 = Color3.fromRGB(200, 230, 255)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 18
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = frame
+
+-- Tombol minimize
+local minimizeButton = Instance.new("TextButton")
+minimizeButton.Size = UDim2.new(0, 25, 0, 25)
+minimizeButton.Position = UDim2.new(1, -30, 0, 5)
+minimizeButton.Text = "–"
+minimizeButton.BackgroundColor3 = Color3.fromRGB(255, 90, 90)
+minimizeButton.TextColor3 = Color3.new(1, 1, 1)
+minimizeButton.Font = Enum.Font.GothamBold
+minimizeButton.TextSize = 18
+minimizeButton.Parent = frame
+
+local minCorner = Instance.new("UICorner")
+minCorner.CornerRadius = UDim.new(0, 6)
+minCorner.Parent = minimizeButton
+
+-- Scroll area
+local scroll = Instance.new("ScrollingFrame")
+scroll.Size = UDim2.new(1, -10, 1, -45)
+scroll.Position = UDim2.new(0, 5, 0, 40)
+scroll.BackgroundTransparency = 1
+scroll.BorderSizePixel = 0
+scroll.ScrollBarThickness = 4
+scroll.CanvasSize = UDim2.new()
+scroll.Parent = frame
+
+-- Floating open button
+local openButton = Instance.new("TextButton")
+openButton.Size = UDim2.new(0, 90, 0, 35)
+openButton.Position = UDim2.new(0, 20, 0.3, 0)
+openButton.Text = "Teleport"
+openButton.BackgroundColor3 = Color3.fromRGB(50, 150, 255)
+openButton.TextColor3 = Color3.new(1, 1, 1)
+openButton.Font = Enum.Font.GothamBold
+openButton.TextSize = 18
+openButton.Visible = false
+openButton.Parent = screenGui
+
+local openCorner = Instance.new("UICorner")
+openCorner.CornerRadius = UDim.new(0, 8)
+openCorner.Parent = openButton
+
+-- Tween animasi
+local tweenIn = TweenInfo.new(0.4, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+local tweenOut = TweenInfo.new(0.4, Enum.EasingStyle.Quint, Enum.EasingDirection.In)
+
+local function openGUI()
+	frame.Visible = true
+	openButton.Visible = false
+	TweenService:Create(frame, tweenIn, {Position = UDim2.new(0, 20, 0.3, 0)}):Play()
+end
+
+local function minimizeGUI()
+	local tween = TweenService:Create(frame, tweenOut, {Position = UDim2.new(0, -220, 0.3, 0)})
+	tween:Play()
+	tween.Completed:Wait()
+	frame.Visible = false
+	openButton.Visible = true
+end
+
+minimizeButton.MouseButton1Click:Connect(minimizeGUI)
+openButton.MouseButton1Click:Connect(openGUI)
+
+-- Keybind (G)
+UIS.InputBegan:Connect(function(input, gameProcessed)
+	if gameProcessed then return end
+	if input.KeyCode == Enum.KeyCode.G then
+		if frame.Visible then
+			minimizeGUI()
+		else
+			openGUI()
+		end
+	end
+end)
+
+-- Fungsi teleport
+local function teleportTo(position)
+	local character = player.Character or player.CharacterAdded:Wait()
+	local hrp = character:WaitForChild("HumanoidRootPart")
+	hrp.CFrame = CFrame.new(position)
+end
+
+-- Fungsi buat tombol
+local function createButton(text, callback)
+	local button = Instance.new("TextButton")
+	button.Size = UDim2.new(1, -10, 0, 30)
+	button.Position = UDim2.new(0, 5, 0, 0)
+	button.Text = text
+	button.BackgroundColor3 = Color3.fromRGB(60, 120, 200)
+	button.TextColor3 = Color3.new(1, 1, 1)
+	button.Font = Enum.Font.GothamBold
+	button.TextSize = 16
+	button.Parent = scroll
+
+	local btnCorner = Instance.new("UICorner")
+	btnCorner.CornerRadius = UDim.new(0, 6)
+	btnCorner.Parent = button
+
+	-- Hover effect
+	button.MouseEnter:Connect(function()
+		button.BackgroundColor3 = Color3.fromRGB(90, 150, 255)
+	end)
+	button.MouseLeave:Connect(function()
+		button.BackgroundColor3 = Color3.fromRGB(60, 120, 200)
+	end)
+
+	if callback then
+		button.MouseButton1Click:Connect(callback)
+	end
+	return button
+end
+
+-- Lokasi teleport
+local locations = {
+	{"POS 1", Vector3.new(5, 12, -404)},
+	{"POS 2", Vector3.new(-184, 128, 408)},
+	{"POS 3", Vector3.new(-166, 229, 652)},
+	{"POS 4", Vector3.new(-38, 406, 616)},
+	{"POS 5", Vector3.new(130, 651, 614)},
+	{"PUNCAK", Vector3.new(781, 2163, 3921)},
+}
+
+-- Generate tombol lokasi
+for _, data in ipairs(locations) do
+	local name, pos = data[1], data[2]
+	createButton(name, function()
+		teleportTo(pos)
+	end)
+end
+
+-- Server Hop
+createButton("🔄 Server Hop", function()
+	-- isi tetap sama
+end)
+
+-- Rejoin
+createButton("🔁 Rejoin Server", function()
+	TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, player)
+end)
+
+scroll.CanvasSize = UDim2.new(0, 0, 0, #locations * 35 + 80)
+
+-- Auto buka pertama kali
+openGUI()
+
+-- ===================================
+-- DRAG SUPPORT
+-- ===================================
+local dragging, dragInput, dragStart, startPos
+
+local function update(input)
+	local delta = input.Position - dragStart
+	frame.Position = UDim2.new(
+		startPos.X.Scale, startPos.X.Offset + delta.X,
+		startPos.Y.Scale, startPos.Y.Offset + delta.Y
+	)
+end
+
+frame.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = true
+		dragStart = input.Position
+		startPos = frame.Position
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
+end)
+
+frame.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+		dragInput = input
+	end
+end)
+
+UIS.InputChanged:Connect(function(input)
+	if input == dragInput and dragging then
+		update(input)
+	end
+end)
