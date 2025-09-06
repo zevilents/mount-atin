@@ -85,7 +85,7 @@ end)
 local openButton = Instance.new("ImageButton")
 openButton.Size = UDim2.new(0, 40, 0, 40)
 openButton.Position = frame.Position
-openButton.Image = "rbxassetid://7229442422" -- icon roket, bisa diganti
+openButton.Image = "rbxassetid://6034283386" -- icon roket, bisa diganti
 openButton.BackgroundColor3 = Color3.fromRGB(50, 150, 255)
 openButton.Visible = false
 openButton.Parent = screenGui
