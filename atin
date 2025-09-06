@@ -1,68 +1,124 @@
--- LocalScript di StarterGui
+-- CLIENT-SIDE ADMIN TOOL GUI
+-- Efeknya hanya terlihat olehmu
+
 local Players = game:GetService("Players")
-local TeleportService = game:GetService("TeleportService")
 local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
 
--- Buat GUI utama
+-- Hapus GUI lama kalau ada
+if playerGui:FindFirstChild("AdminToolGUI") then
+	playerGui.AdminToolGUI:Destroy()
+end
+
+-- Buat GUI
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "TeleportGUI"
+screenGui.Name = "AdminToolGUI"
 screenGui.ResetOnSpawn = false
-screenGui.Parent = player:WaitForChild("PlayerGui")
+screenGui.Parent = playerGui
 
--- Frame panel
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 250, 0, 220)
-frame.Position = UDim2.new(0, 20, 0, 100)
-frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-frame.BackgroundTransparency = 0.3
+frame.Size = UDim2.new(0, 200, 0, 250)
+frame.Position = UDim2.new(0, 50, 0, 100)
+frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 frame.BorderSizePixel = 0
 frame.Parent = screenGui
 
--- Sudut melengkung
 local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 12)
+corner.CornerRadius = UDim.new(0, 10)
 corner.Parent = frame
 
--- Fungsi bikin tombol dengan posisi manual
-local function createButton(text, yPos, callback)
-	local button = Instance.new("TextButton")
-	button.Size = UDim2.new(0, 200, 0, 50)
-	button.Position = UDim2.new(0, 25, 0, yPos)
-	button.Text = text
-	button.BackgroundColor3 = Color3.fromRGB(50, 150, 255)
-	button.TextColor3 = Color3.fromRGB(255, 255, 255)
-	button.Font = Enum.Font.SourceSansBold
-	button.TextSize = 20
-	button.Parent = frame
+-- ScrollFrame
+local scroll = Instance.new("ScrollingFrame")
+scroll.Size = UDim2.new(1, -10, 1, -10)
+scroll.Position = UDim2.new(0, 5, 0, 5)
+scroll.BackgroundTransparency = 1
+scroll.BorderSizePixel = 0
+scroll.ScrollBarThickness = 6
+scroll.Parent = frame
 
-	-- Rounded button
+local layout = Instance.new("UIListLayout")
+layout.Padding = UDim.new(0, 5)
+layout.Parent = scroll
+
+-- Fungsi bikin tombol
+local function createButton(text, callback)
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(1, -10, 0, 35)
+	btn.Text = text
+	btn.BackgroundColor3 = Color3.fromRGB(70, 130, 255)
+	btn.TextColor3 = Color3.new(1, 1, 1)
+	btn.Font = Enum.Font.SourceSansBold
+	btn.TextSize = 18
+	btn.Parent = scroll
+	
 	local btnCorner = Instance.new("UICorner")
 	btnCorner.CornerRadius = UDim.new(0, 8)
-	btnCorner.Parent = button
+	btnCorner.Parent = btn
 
-	button.MouseButton1Click:Connect(callback)
+	btn.MouseButton1Click:Connect(function()
+		if callback then callback() end
+	end)
 end
 
--- Koordinat tujuan
-local pos26 = Vector3.new(626, 1799, 3432)
-local puncak = Vector3.new(795, 2175, 3944)
+-- ==========================
+-- FITUR ADMIN TOOL (CLIENT)
+-- ==========================
 
--- Fungsi teleport
-local function teleportTo(position)
-	local character = player.Character or player.CharacterAdded:Wait()
-	local hrp = character:WaitForChild("HumanoidRootPart")
-	hrp.CFrame = CFrame.new(position)
-end
-
--- Tambah tombol ke panel
-createButton("Teleport ke POS 26", 20, function()
-	teleportTo(pos26)
+-- 1. Spawn Part
+createButton("🟥 Spawn Part", function()
+	local part = Instance.new("Part")
+	part.Size = Vector3.new(6, 1, 6)
+	part.Anchored = true
+	part.Position = (player.Character and player.Character:FindFirstChild("HumanoidRootPart")) 
+		and player.Character.HumanoidRootPart.Position + Vector3.new(0,5,0) or Vector3.new(0,5,0)
+	part.Color = Color3.fromRGB(255,0,0)
+	part.Parent = workspace
 end)
 
-createButton("Teleport ke PUNCAK", 90, function()
-	teleportTo(puncak)
+-- 2. Ubah Warna Random
+createButton("🎨 Change Color", function()
+	local target = workspace:FindFirstChildWhichIsA("Part")
+	if target then
+		target.Color = Color3.fromRGB(math.random(0,255), math.random(0,255), math.random(0,255))
+	end
 end)
 
-createButton("Server Hop", 160, function()
-	TeleportService:Teleport(game.PlaceId, player)
+-- 3. Hapus Part Terdekat
+createButton("🗑️ Delete Nearest Part", function()
+	local character = player.Character
+	if not character then return end
+	local hrp = character:FindFirstChild("HumanoidRootPart")
+	if not hrp then return end
+
+	local nearest, dist = nil, math.huge
+	for _, obj in pairs(workspace:GetDescendants()) do
+		if obj:IsA("BasePart") and obj ~= hrp then
+			local d = (obj.Position - hrp.Position).Magnitude
+			if d < dist then
+				dist = d
+				nearest = obj
+			end
+		end
+	end
+	if nearest then
+		nearest:Destroy()
+	end
+end)
+
+-- 4. Clear Semua Part (client-side)
+createButton("⚠️ Clear All Parts", function()
+	for _, obj in pairs(workspace:GetChildren()) do
+		if obj:IsA("Part") then
+			obj:Destroy()
+		end
+	end
+end)
+
+-- 5. Teleport Ke Atas (efek admin palsu)
+createButton("⬆️ Teleport Up", function()
+	local character = player.Character
+	if character and character:FindFirstChild("HumanoidRootPart") then
+		local hrp = character.HumanoidRootPart
+		hrp.CFrame = hrp.CFrame + Vector3.new(0,20,0)
+	end
 end)
