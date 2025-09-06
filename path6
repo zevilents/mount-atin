@@ -1,11 +1,11 @@
--- INPUT RECORDER GUI (Guaranteed Visible)
--- Rekam input keyboard (WASD + Space), simpan JSON, replay natural
+-- FINAL INPUT RECORDER (GUI + WASD + Jump Natural)
+-- Simpan ke file, bisa replay 100% sesuai rekaman
 
 local UIS = game:GetService("UserInputService")
 local VIM = game:GetService("VirtualInputManager")
 local HttpService = game:GetService("HttpService")
 
--- Cari parent GUI sesuai exploit
+-- Tentukan parent GUI (agar muncul di semua executor)
 local parentGui
 if syn and syn.protect_gui then
     local gui = Instance.new("ScreenGui")
@@ -18,7 +18,7 @@ else
     parentGui = game:GetService("CoreGui")
 end
 
--- Hapus GUI lama
+-- Hapus GUI lama jika ada
 if parentGui:FindFirstChild("ObbyRecorder") then
 	parentGui.ObbyRecorder:Destroy()
 end
@@ -38,38 +38,6 @@ frame.Parent = screen
 local corner = Instance.new("UICorner")
 corner.CornerRadius = UDim.new(0,10)
 corner.Parent = frame
-
--- Drag Support
-local dragging, dragInput, dragStart, startPos
-local function update(input)
-	local delta = input.Position - dragStart
-	frame.Position = UDim2.new(
-		startPos.X.Scale, startPos.X.Offset + delta.X,
-		startPos.Y.Scale, startPos.Y.Offset + delta.Y
-	)
-end
-frame.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		dragging = true
-		dragStart = input.Position
-		startPos = frame.Position
-		input.Changed:Connect(function()
-			if input.UserInputState == Enum.UserInputState.End then
-				dragging = false
-			end
-		end)
-	end
-end)
-frame.InputChanged:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseMovement then
-		dragInput = input
-	end
-end)
-UIS.InputChanged:Connect(function(input)
-	if input == dragInput and dragging then
-		update(input)
-	end
-end)
 
 -- Utility buat tombol
 local function createBtn(txt, order, callback)
@@ -96,6 +64,7 @@ local recordData = {}
 local startTime = 0
 local fileName = "obby_record.json"
 
+-- mulai rekam
 local function startRecording()
 	if playing then return end
 	recordData = {}
@@ -104,6 +73,7 @@ local function startRecording()
 	warn("🎥 Recording started...")
 end
 
+-- stop rekam + simpan file
 local function stopRecording()
 	if not recording then return end
 	recording = false
@@ -112,6 +82,7 @@ local function stopRecording()
 	warn("🛑 Recording stopped. Saved to " .. fileName)
 end
 
+-- replay file
 local function playRecording()
 	if playing or recording then return end
 	if not isfile(fileName) then
@@ -124,8 +95,12 @@ local function playRecording()
 	warn("▶️ Playback started...")
 
 	spawn(function()
+		local start = tick()
 		for _, input in ipairs(data) do
-			task.wait(input.delay)
+			local waitTime = input.time - (tick() - start)
+			if waitTime > 0 then
+				task.wait(waitTime)
+			end
 			VIM:SendKeyEvent(input.began, input.key, false, game)
 		end
 		playing = false
@@ -133,28 +108,24 @@ local function playRecording()
 	end)
 end
 
--- Rekam input
+-- simpan input saat rekam
 UIS.InputBegan:Connect(function(input, processed)
 	if recording and not processed and input.UserInputType == Enum.UserInputType.Keyboard then
-		local delay = tick() - startTime
 		table.insert(recordData, {
 			key = input.KeyCode,
 			began = true,
-			delay = delay
+			time = tick() - startTime
 		})
-		startTime = tick()
 	end
 end)
 
 UIS.InputEnded:Connect(function(input, processed)
 	if recording and not processed and input.UserInputType == Enum.UserInputType.Keyboard then
-		local delay = tick() - startTime
 		table.insert(recordData, {
 			key = input.KeyCode,
 			began = false,
-			delay = delay
+			time = tick() - startTime
 		})
-		startTime = tick()
 	end
 end)
 
