@@ -1,0 +1,59 @@
+--// Services
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local PathModule = require(ReplicatedStorage:WaitForChild("SimplePath")) -- lokasi module SimplePath
+
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+
+--// Buat Path agent
+local Path = PathModule.new(character, {
+	AgentHeight = 5,
+	AgentRadius = 2,
+	AgentCanJump = true
+})
+
+Path.Visualize = true -- tampilkan waypoint neon
+
+-- Posisi tujuan
+local pos2 = Vector3.new(-1203, 262, -489)
+local pos3 = Vector3.new(-1399, 579, -950)
+
+--// GUI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "PathGui"
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+local button = Instance.new("TextButton")
+button.Size = UDim2.new(0, 200, 0, 50)
+button.Position = UDim2.new(0.5, -100, 0.8, 0)
+button.Text = "Jalan Pos2 → Pos3"
+button.Parent = screenGui
+
+--// Fungsi jalan
+local function jalanPos2kePos3()
+	-- teleport dulu ke pos2
+	character:PivotTo(CFrame.new(pos2))
+	task.wait(1)
+
+	-- mulai path ke pos3
+	local success = Path:Run(pos3)
+	if success then
+		print("Karakter mulai jalan ke pos3...")
+	else
+		warn("Gagal membuat path")
+	end
+end
+
+button.MouseButton1Click:Connect(jalanPos2kePos3)
+
+-- Event kalau sampai tujuan
+Path.Reached:Connect(function()
+	print("Sampai di pos3!")
+end)
+
+-- Event kalau error
+Path.Error:Connect(function(err)
+	warn("Error:", err)
+end)
