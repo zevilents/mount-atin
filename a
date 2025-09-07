@@ -142,7 +142,7 @@ local function teleportTo(position)
 	local hrp = character:WaitForChild("HumanoidRootPart")
 	
 	-- Tambahkan ketinggian ekstra agar karakter turun dari atas
-	local teleportHeight = position.Y + 10 -- Naikkan hanya 10 poin
+	local teleportHeight = position.Y + 50 -- Naikkan 50 poin
 	local teleportPos = Vector3.new(position.X, teleportHeight, position.Z)
 	
 	-- Teleport karakter ke posisi di atas
