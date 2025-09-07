@@ -136,11 +136,20 @@ UIS.InputBegan:Connect(function(input, gameProcessed)
 	end
 end)
 
--- Fungsi teleport
+-- Fungsi teleport yang dimodifikasi agar turun dari atas
 local function teleportTo(position)
 	local character = player.Character or player.CharacterAdded:Wait()
 	local hrp = character:WaitForChild("HumanoidRootPart")
-	hrp.CFrame = CFrame.new(position)
+	
+	-- Tambahkan ketinggian ekstra agar karakter turun dari atas
+	local teleportHeight = position.Y + 10 -- Naikkan hanya 10 poin
+	local teleportPos = Vector3.new(position.X, teleportHeight, position.Z)
+	
+	-- Teleport karakter ke posisi di atas
+	hrp.CFrame = CFrame.new(teleportPos)
+	
+	-- Tambahkan efek visual atau suara jika diperlukan
+	
 end
 
 -- Fungsi buat tombol
@@ -163,7 +172,7 @@ local function createButton(text, callback)
 	end
 end
 
--- Daftar lokasi BARU
+-- Daftar lokasi
 local locations = {
 	{"BASECAMP", Vector3.new(-244, 122, 203)},
 	{"POS 1", Vector3.new(-134, 421, -220)},
