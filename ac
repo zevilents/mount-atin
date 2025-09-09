@@ -1,0 +1,71 @@
+-- Services
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+-- Events
+local recordEvent = ReplicatedStorage:WaitForChild("RecordEvent")
+local playbackEvent = ReplicatedStorage:WaitForChild("PlaybackEvent")
+
+-- GUI elements
+local gui = script.Parent.Parent.Parent
+local recordButton = gui.MainFrame.RecordButton
+local playbackButton = gui.MainFrame.PlaybackButton
+
+-- Local variables
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+local recording = {}
+local isRecording = false
+local RECORD_INTERVAL = 0.1
+
+-- Fungsi untuk memulai rekaman
+local function startRecording()
+    isRecording = true
+    recording = {}
+    recordButton.Text = "Stop Rekam"
+    playbackButton.Visible = false
+    
+    while isRecording do
+        if not character or not character:FindFirstChild("HumanoidRootPart") then break end
+        
+        table.insert(recording, {
+            CFrame = character.HumanoidRootPart.CFrame
+        })
+        task.wait(RECORD_INTERVAL)
+    end
+end
+
+-- Fungsi untuk menghentikan rekaman
+local function stopRecording()
+    isRecording = false
+    recordButton.Text = "Mulai Rekam"
+    playbackButton.Visible = true
+    print("Rekaman selesai. Mengirim data ke server...")
+    recordEvent:FireServer(recording)
+end
+
+-- Fungsi untuk memutar ulang
+local function startPlayback()
+    recordButton.Visible = false
+    playbackButton.Text = "Memutar Ulang..."
+    playbackEvent:FireServer()
+end
+
+-- Menghubungkan tombol ke fungsi
+recordButton.MouseButton1Click:Connect(function()
+    if not isRecording then
+        startRecording()
+    else
+        stopRecording()
+    end
+end)
+
+playbackButton.MouseButton1Click:Connect(startPlayback)
+
+-- Ketika playback selesai, tombol kembali normal
+playbackEvent.OnClientEvent:Connect(function()
+    recordButton.Visible = true
+    playbackButton.Text = "Putar Ulang"
+end)
