@@ -1,0 +1,142 @@
+-- FINAL: Playback POS1 → POS2 dari JSON di GitHub
+local Players = game:GetService("Players")
+local HttpService = game:GetService("HttpService")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- GUI
+local screenGui = Instance.new("ScreenGui", playerGui)
+screenGui.Name = "PlaybackGui"
+screenGui.ResetOnSpawn = false
+
+local frame = Instance.new("Frame", screenGui)
+frame.Size = UDim2.new(0, 240, 0, 120)
+frame.Position = UDim2.new(0.5, -120, 0.75, 0)
+frame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+
+local corner = Instance.new("UICorner", frame)
+corner.CornerRadius = UDim.new(0, 12)
+
+-- START Button
+local startBtn = Instance.new("TextButton", frame)
+startBtn.Size = UDim2.new(0.9, 0, 0, 40)
+startBtn.Position = UDim2.new(0.05, 0, 0.15, 0)
+startBtn.Text = "▶ Start (POS1 → POS2)"
+startBtn.Font = Enum.Font.GothamBold
+startBtn.TextSize = 18
+startBtn.BackgroundColor3 = Color3.fromRGB(70, 130, 255)
+startBtn.TextColor3 = Color3.new(1, 1, 1)
+Instance.new("UICorner", startBtn).CornerRadius = UDim.new(0, 8)
+
+-- STOP Button
+local stopBtn = Instance.new("TextButton", frame)
+stopBtn.Size = UDim2.new(0.9, 0, 0, 40)
+stopBtn.Position = UDim2.new(0.05, 0, 0.55, 0)
+stopBtn.Text = "■ Stop"
+stopBtn.Font = Enum.Font.GothamBold
+stopBtn.TextSize = 18
+stopBtn.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
+stopBtn.TextColor3 = Color3.new(1, 1, 1)
+Instance.new("UICorner", stopBtn).CornerRadius = UDim.new(0, 8)
+
+-- Raw GitHub URL JSON
+local GITHUB_URL = "https://raw.githubusercontent.com/zevilents/mount-atin/main/pos1pos2json"
+
+-- Playback control
+local conn
+local playing = false
+
+-- helper: convert table to CFrame
+local function tableToCFrame(t)
+	return CFrame.new(t.x, t.y, t.z) * CFrame.Angles(t.rx, t.ry, t.rz)
+end
+
+-- fungsi play
+local function playRecording(data)
+	if playing then return end
+	playing = true
+
+	local character = player.Character or player.CharacterAdded:Wait()
+	local hrp = character:WaitForChild("HumanoidRootPart")
+
+	-- anchor biar stabil
+	local oldAnchored = hrp.Anchored
+	hrp.Anchored = true
+
+	local total = #data
+	if total < 2 then
+		warn("Data terlalu sedikit")
+		hrp.Anchored = oldAnchored
+		playing = false
+		return
+	end
+
+	local startTime = tick()
+	local idx = 1
+
+	conn = RunService.Heartbeat:Connect(function()
+		if not playing then
+			conn:Disconnect()
+			hrp.Anchored = oldAnchored
+			return
+		end
+
+		local current = tick() - startTime
+		while idx < total and current > data[idx+1].t do
+			idx += 1
+		end
+
+		if idx >= total then
+			conn:Disconnect()
+			hrp.Anchored = oldAnchored
+			playing = false
+			print("Playback selesai")
+			return
+		end
+
+		local s = data[idx]
+		local e = data[idx+1]
+		local segDur = math.max(0.0001, e.t - s.t)
+		local segT = math.clamp((current - s.t) / segDur, 0, 1)
+
+		local cfS = tableToCFrame(s.c)
+		local cfE = tableToCFrame(e.c)
+		local cfInterp = cfS:Lerp(cfE, segT)
+		hrp.CFrame = cfInterp
+	end)
+end
+
+-- Start button
+startBtn.MouseButton1Click:Connect(function()
+	if playing then
+		warn("Sedang playback, tunggu selesai atau tekan Stop.")
+		return
+	end
+
+	print("Mengambil data JSON dari GitHub...")
+	local success, response = pcall(function()
+		return game:HttpGet(GITHUB_URL)
+	end)
+
+	if success then
+		local json = HttpService:JSONDecode(response)
+		if json and json.data then
+			print("Berhasil load JSON, samples:", #json.data)
+			playRecording(json.data)
+		else
+			warn("Format JSON tidak valid")
+		end
+	else
+		warn("Gagal ambil JSON:", response)
+	end
+end)
+
+-- Stop button
+stopBtn.MouseButton1Click:Connect(function()
+	if playing then
+		print("Playback dihentikan manual.")
+		playing = false
+	end
+end)
